@@ -23,6 +23,9 @@ El agente de IA no debe actuar como un generador ciego de código ni resolver lo
 * **Asignatura:** Introducción a la Computación Gráfica (Universidad Central de Venezuela).
 * **Objetivo:** Implementar una aplicación interactiva 3D con C++17 y OpenGL 3.3 Core Profile que permita cargar, generar procedimentalmente, renderizar, manipular y seleccionar entidades mediante *Color Picking*, con interfaz gráfica y persistencia.
 * **Modalidad:** Proyecto en parejas (por tanto, **todos los requisitos opcionales son de carácter obligatorio**).
+* **Compatibilidad Multiplataforma Obligatoria (Linux y Windows):**
+  * **Uno de los desarrolladores trabaja en Linux y el otro en Windows.**
+  * El proyecto debe compilar, enlazar y ejecutarse de manera transparente e idéntica en ambos sistemas operativos sin requerir parches específicos.
 
 ---
 
@@ -120,6 +123,13 @@ Cualquier agente que genere o modifique código debe acatar sin excepción las s
 
 ### 8. Desacoplamiento de la Interfaz (`EditorUI`)
 * Mantener las llamadas de Dear ImGui confinadas dentro de `ui/EditorUI.cpp`. El ciclo principal en `src/main.cpp` debe permanecer limpio y comprensible.
+
+### 9. Compatibilidad Multiplataforma Estricta (Linux / Windows)
+* **Regla:** Dado que los integrantes desarrollan en diferentes sistemas operativos (Linux y Windows):
+  - **Rutas de archivos:** Utilizar **siempre barras inclinadas hacia adelante (`/`)** en las rutas relativas de C++, CMake y GLSL, nunca barras invertidas de Windows (`\`). Usar `std::filesystem::path` para manipulación de rutas en C++.
+  - **Sensibilidad a Mayúsculas/Minúsculas (*Case Sensitivity*):** Linux distingue estrictamente entre mayúsculas y minúsculas (a diferencia del sistema de archivos NTFS de Windows). Todas las inclusiones `#include` y rutas a assets deben coincidir **exactamente** con el nombre real del archivo en disco (ej. `core/Shader.h`, `assets/shaders/default.vert`).
+  - **Prohibición de cabeceras exclusivas de SO:** No incluir `<windows.h>`, `<unistd.h>` ni funciones no estándar de compiladores concretos (como `fopen_s`). Toda la interacción con ventanas, contexto y entrada debe canalizarse a través de GLFW, GLM y la biblioteca estándar de C++17.
+  - **Portabilidad en CMake:** No usar bibliotecas o flags fijas dependientes del SO (como `opengl32.lib` o `-lGL`). Utilizar los targets portables de CMake (`OpenGL::GL`, `glfw`, `glad`).
 
 ---
 
