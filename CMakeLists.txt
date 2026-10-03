@@ -94,9 +94,36 @@ if(NOT imgui_POPULATED)
     target_link_libraries(imgui PUBLIC glfw glad OpenGL::GL)
 endif()
 
+# Fuentes y cabeceras del proyecto
+set(SOURCES
+    src/core/Shader.cpp
+    src/core/Camera.cpp
+    src/graphics/Mesh.cpp
+    src/graphics/Model.cpp
+    src/graphics/Primitives.cpp
+    src/graphics/Framebuffer.cpp
+    src/scene/Scene.cpp
+    src/scene/SceneSerializer.cpp
+    src/ui/EditorUI.cpp
+    src/main.cpp
+)
+
+set(HEADERS
+    src/core/Shader.h
+    src/core/Camera.h
+    src/graphics/Mesh.h
+    src/graphics/Model.h
+    src/graphics/Primitives.h
+    src/graphics/Framebuffer.h
+    src/scene/Scene.h
+    src/scene/SceneSerializer.h
+    src/ui/EditorUI.h
+)
+
 # Ejecutable principal
 add_executable(${PROJECT_NAME}
-    src/main.cpp
+    ${SOURCES}
+    ${HEADERS}
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
