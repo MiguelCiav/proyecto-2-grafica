@@ -109,7 +109,49 @@ Cualquier agente que genere o modifique código debe acatar sin excepción las s
 
 ---
 
-## 🚀 5. Protocolo de Verificación y Compilación
+## 🌿 5. Política de Ramas y Flujo de Trabajo en Git
+
+Para garantizar que los dos colaboradores trabajen en paralelo sin colisiones ni pérdidas de código, los agentes de IA deben respetar y hacer cumplir la siguiente política de ramas:
+
+### 1. Protección de la Rama Principal (`main`)
+* La rama `main` contiene únicamente código estable, compilable y verificado.
+* **Queda estrictamente prohibido realizar *commits* o *pushes* directos sobre `main`** para desarrollar características.
+* Toda nueva funcionalidad debe desarrollarse en su propia rama aislada (*feature branch*) e integrarse mediante *Pull Request* (PR) o fusión controlada.
+
+### 2. Convención de Nombres de Ramas
+Las ramas deben crearse siguiendo el código de los issues registrados en el repositorio:
+
+| Tipo de Rama | Formato de Nomenclatura | Ejemplo |
+| :--- | :--- | :--- |
+| **Nueva Característica** | `feat/<REQ-ID>-<descripcion-corta>` | `feat/REQ-A1-shader-manager`<br>`feat/REQ-B3-obj-loader`<br>`feat/REQ-A5-picking-fbo` |
+| **Corrección de Bugs** | `fix/<REQ-ID>-<descripcion>` | `fix/REQ-B4-normal-orientation` |
+| **Refactorización / Limpieza** | `refactor/<modulo>-<descripcion>` | `refactor/mesh-buffer-cleanup` |
+| **Documentación** | `docs/<descripcion>` | `docs/actualizar-requisitos` |
+
+### 3. Ciclo de Trabajo por Tarea
+1. **Sincronizar base antes de comenzar:**
+   ```bash
+   git checkout main
+   git pull origin main
+   ```
+2. **Crear rama de trabajo asociada al issue:**
+   ```bash
+   git checkout -b feat/REQ-XX-descripcion
+   ```
+3. **Commits semánticos y atómicos:**
+   * Utilizar la convención *Conventional Commits* vinculando el número de issue:
+     - `feat(shader): implementar lectura y compilación desde disco (Closes #1)`
+     - `feat(model): normalizar coordenadas al rango [-1, 1] (Closes #7)`
+4. **Verificación local obligatoria:**
+   * Compilar el proyecto antes de enviar el PR (`cmake --build build`). No se aprueba código que rompa la compilación.
+5. **Cierre de Issues en Pull Request:**
+   * En la descripción del PR, incluir palabras clave de cierre (`Closes #X` o `Fixes #X`) para que GitHub actualice automáticamente el backlog y el milestone.
+6. **Revisión Cruzada:**
+   * El desarrollador que no escribió la funcionalidad debe revisar y aprobar el PR antes de fusionarlo a `main`.
+
+---
+
+## 🚀 6. Protocolo de Verificación y Compilación
 
 Antes de dar por finalizada cualquier tarea o cambio sugerido por un agente, se debe verificar que el proyecto compile sin errores ni advertencias mediante la terminal:
 
