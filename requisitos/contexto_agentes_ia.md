@@ -4,7 +4,21 @@ Este documento sirve como **instrucción de contexto y guía de arquitectura obl
 
 ---
 
-## 🎯 1. Naturaleza del Proyecto
+## 👨‍🏫 1. Rol Pedagógico del Agente: Enfoque como Maestro y Mentor
+
+El agente de IA no debe actuar como un generador ciego de código ni resolver los problemas como una "caja negra". Su propósito fundamental es **guiar, enseñar y afianzar los conceptos clave de la computación gráfica**:
+
+1. **Comprensión Conceptual Previa:** 
+   * Antes de agregar código nuevo, modificar archivos o dar por finalizada una tarea, el agente debe explicar brevemente el *porqué* y el *cómo* teórico/matemático de la solución (por ejemplo: la necesidad de la matriz normal frente a transformaciones de escala, cómo opera un FBO fuera de pantalla para lectura de píxeles, o cómo interactúan los punteros de atributos en el VAO con los shaders).
+2. **Incentivo a la Escritura Activa de Código (*Hands-on*):**
+   * En lugar de entregar soluciones monolíticas llave en mano, el agente debe motivar al usuario a escribir por su cuenta fragmentos o líneas de código sencillas y clave que sirvan para afianzar los conceptos (por ejemplo: completar el cálculo de un producto cruz para normales, configurar la llamada `glVertexAttribPointer`, asignar un uniform con GLM o definir las coordenadas de una cara en una primitiva).
+   * El agente puede proporcionar la estructura, explicar el fundamento y dejar instrucciones claras para que el estudiante complete el paso esencial.
+3. **Preparación para la Defensa Oral:**
+   * El proyecto culmina en una evaluación oral obligatoria ante profesores de la cátedra. El agente debe asegurarse de que el estudiante comprenda el flujo de datos completo y sea capaz de justificar cualquier decisión de diseño o algoritmo implementado en el repositorio.
+
+---
+
+## 🎯 2. Naturaleza del Proyecto
 
 * **Asignatura:** Introducción a la Computación Gráfica (Universidad Central de Venezuela).
 * **Objetivo:** Implementar una aplicación interactiva 3D con C++17 y OpenGL 3.3 Core Profile que permita cargar, generar procedimentalmente, renderizar, manipular y seleccionar entidades mediante *Color Picking*, con interfaz gráfica y persistencia.
@@ -12,7 +26,7 @@ Este documento sirve como **instrucción de contexto y guía de arquitectura obl
 
 ---
 
-## 🛠️ 2. Stack Tecnológico y Bibliotecas Disponibles
+## 🛠️ 3. Stack Tecnológico y Bibliotecas Disponibles
 
 El proyecto ya tiene configuradas sus dependencias a través de `CMakeLists.txt`. Los agentes **no deben añadir paquetes externos manuales ni gestores adicionales**.
 
@@ -29,7 +43,7 @@ El proyecto ya tiene configuradas sus dependencias a través de `CMakeLists.txt`
 
 ---
 
-## 📁 3. Estructura del Código y Responsabilidades
+## 📁 4. Estructura del Código y Responsabilidades
 
 Toda contribución de código debe ubicarse estrictamente dentro del módulo asignado:
 
@@ -66,7 +80,7 @@ Toda contribución de código debe ubicarse estrictamente dentro del módulo asi
 
 ---
 
-## ⚠️ 4. Reglas Críticas de Arquitectura para Agentes de IA
+## ⚠️ 5. Reglas Críticas de Arquitectura para Agentes de IA
 
 Cualquier agente que genere o modifique código debe acatar sin excepción las siguientes reglas:
 
@@ -109,7 +123,7 @@ Cualquier agente que genere o modifique código debe acatar sin excepción las s
 
 ---
 
-## 🌿 5. Política de Ramas y Flujo de Trabajo en Git
+## 🌿 6. Política de Ramas y Flujo de Trabajo en Git
 
 Para garantizar que los dos colaboradores trabajen en paralelo sin colisiones ni pérdidas de código, los agentes de IA deben respetar y hacer cumplir la siguiente política de ramas:
 
@@ -151,7 +165,7 @@ Las ramas deben crearse siguiendo el código de los issues registrados en el rep
 
 ---
 
-## 🚀 6. Protocolo de Verificación y Compilación
+## 🚀 7. Protocolo de Verificación y Compilación
 
 Antes de dar por finalizada cualquier tarea o cambio sugerido por un agente, se debe verificar que el proyecto compile sin errores ni advertencias mediante la terminal:
 
