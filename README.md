@@ -44,19 +44,19 @@
 * **`external/glad/`**: Código fuente y cabeceras de GLAD configurado para OpenGL 3.3 Core Profile.
 * **`src/`**: Código fuente en C++ del motor/aplicación:
   * **`core/`**:
-    * `Shader`: Lee, compila y gestiona programas de shaders en OpenGL, además de asignar valores uniformes (`mat4`, `vec3`, `float`, etc.).
-    * `Camera`: Maneja la cámara en primera/tercera persona mediante matriz LookAt, proyección en perspectiva y controles interactivos (WASD + Mouse).
+    * `Shader`: Lee los archivos `.vert` y `.frag` del disco, compila y gestiona el enlace, eliminando cadenas de texto en C++, además de asignar uniforms.
+    * `Camera`: Calcula las matrices `view` y `projection` requeridas por el vertex shader provisto y procesa el mouse y teclado GLFW.
   * **`graphics/`**:
-    * `Mesh`: Abstracción de buffers de OpenGL (VAO, VBO, EBO) y control de los modos de dibujo (sólido, líneas/wireframe, puntos).
-    * `Model`: Carga mallas 3D usando `tinyobjloader`, genera normales si no están presentes y calcula el centrado y normalización del modelo en el espacio de coordenadas.
-    * `Primitives`: Generador procedimental de geometrías básicas (Cubo, Pirámide, Esfera y Cilindro).
-    * `Framebuffer`: Maneja Framebuffer Objects (FBO) fuera de pantalla para lectura de píxeles (`glReadPixels`) y soporte de selección interactiva.
+    * `Mesh`: Encapsula el VAO, VBO y EBO de un sub-mallado individual y gestiona los modos de dibujo (sólido, líneas/wireframe, puntos).
+    * `Model`: Almacena los sub-mallados (mediante `tinyobjloader`), computa las normales promedio si faltan, escala la figura a $[-1, 1]$ (normalización de tamaño) y guarda el color difuso $K_d$ del `.mtl`.
+    * `Primitives`: Genera matemáticamente las posiciones y normales para el cubo, pirámide, esfera y cilindro sin depender de archivos externos.
+    * `Framebuffer`: Dibuja la escena en una textura oculta asignando un color RGB único por objeto, sub-mallado o triángulo para leer el píxel bajo el cursor (`glReadPixels`).
   * **`scene/`**:
-    * `Scene`: Mantiene la lista de objetos de la escena, sus matrices de transformación (traslación, rotación, escala), eliminación de elementos y parámetros de iluminación global.
-    * `SceneSerializer`: Serializa y deserializa el estado de la escena en archivos de texto/JSON en disco.
+    * `Scene`: Contenedor maestro que actualiza la jerarquía cuando se rota, traslada o escala un objeto y propaga los cambios a sus sub-mallados, además de administrar la luz global.
+    * `SceneSerializer`: Guarda y carga la escena en disco (formato texto o JSON).
   * **`ui/`**:
-    * `EditorUI`: Integra Dear ImGui para desplegar paneles de control en tiempo real (contador de FPS, modos de dibujo, propiedades de los objetos e iluminación).
-  * **`main.cpp`**: Punto de entrada del programa. Inicializa la ventana GLFW, el contexto OpenGL, el bucle principal y coordina todos los subsistemas.
+    * `EditorUI`: Centraliza todas las llamadas de Dear ImGui para evitar ensuciar el ciclo de renderizado (FPS, propiedades del objeto, modos).
+  * **`main.cpp`**: Inicialización, loop principal e integración de subsistemas.
 * **`CMakeLists.txt`**: Script maestro de CMake que descarga dependencias mediante `FetchContent` (GLFW, GLM, ImGui, TinyObjLoader) y compila el ejecutable.
 
 ---
