@@ -97,7 +97,6 @@ endif()
 # Ejecutable principal
 add_executable(${PROJECT_NAME}
     src/main.cpp
-    src/Shader.h
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE

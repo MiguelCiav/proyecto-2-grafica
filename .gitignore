@@ -56,3 +56,6 @@ imgui.ini
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# vscode
+.vscode/
