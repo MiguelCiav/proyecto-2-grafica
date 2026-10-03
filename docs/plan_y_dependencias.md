@@ -1,28 +1,27 @@
 # Plan de Trabajo, Fases y Mapa de Dependencias
 
 **Proyecto #2 - Renderizado y Manipulación de Objetos 3D**  
-*Guía pedagógica para desarrollo colaborativo en parejas*
+*Guía pedagógica para desarrollo colaborativo en paralelo (Linux / Windows)*
 
 ---
 
 ## 🧭 1. Recomendaciones y Buenas Prácticas de Ingeniería
 
 1. **Diseño por Contratos en Encabezados (`.h`):**
-   - Antes de escribir el código de una funcionalidad, ambos integrantes deben acordar la firma de los métodos en el archivo de cabecera (`.h`).
+   - Antes de escribir la implementación de cualquier módulo, ambos integrantes acuerdan la firma de los métodos en el archivo de cabecera (`.h`).
    - Una vez consensuado el `.h`, ambos desarrolladores pueden trabajar en sus archivos `.cpp` en paralelo sin bloquearse mutuamente.
-2. **Flujo de Trabajo en Git (Feature Branches):**
+2. **Flujo de Trabajo en Git (Feature Branches asociadas a Issues):**
    - Nunca hacer *commits* directamente en la rama principal (`main`).
-   - Crear una rama por cada requisito o tarea (ejemplo: `feat/REQ-A1-shader`, `feat/REQ-B3-obj-loader`).
-   - Realizar integración mediante *Pull Requests* o *Merges* tras comprobar que el proyecto compila limpiamente sin advertencias (`cmake --build build`).
-3. **Curva de Aprendizaje Incremental:**
-   - No intentar implementar técnicas complejas (como el *Color Picking* con FBOs) sin antes tener el renderizado básico y las matrices de cámara funcionando de manera robusta.
-   - Probar cada módulo de forma aislada antes de integrarlo en la escena general.
+   - Crear una rama por cada tarea utilizando el código de issue (ejemplo: `feat/REQ-A1-shader`, `feat/REQ-B3-obj-loader`).
+   - Realizar integración mediante *Pull Requests* (PR) tras comprobar que el proyecto compila limpiamente sin advertencias (`cmake --build build`).
+3. **Puntos de Consolidación Explícitos en `src/main.cpp`:**
+   - Para evitar que ambos integrantes editen `src/main.cpp` simultáneamente durante el desarrollo individual, este archivo se modifica **únicamente en los 3 hitos de consolidación conjunta (`INT-01`, `INT-02` e `INT-03`)**.
 
 ---
 
-## 🗺️ 2. Mapa Integral de Dependencias
+## 🗺️ 2. Mapa Integral de Dependencias (Flujo Paralelo)
 
-El siguiente diagrama ilustra las dependencias técnicas entre cada tarea y cómo se distribuye el trabajo en paralelo entre el **Desarrollador A** y el **Desarrollador B**:
+El siguiente diagrama ilustra la arquitectura de dependencias técnicas y demuestra cómo **Dev A** y **Dev B** trabajan simultáneamente sin esperarse, convergiendo en los puntos de consolidación en `src/main.cpp`:
 
 ```mermaid
 flowchart TD
@@ -31,93 +30,84 @@ flowchart TD
     classDef sync fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#e65100;
 
     subgraph FASE_1 ["Fase 1: Cimientos y Fundamentos"]
-        A1["[A1] core/Shader.h/.cpp<br/>Compilación y Uniforms"]:::devA
-        B1["[B1] graphics/Mesh.h/.cpp<br/>Buffers VAO/VBO/EBO"]:::devB
-        A1 --> A2["[A2] core/Camera.h/.cpp<br/>LookAt, Proyección y WASD"]:::devA
-        B1 --> B2["[B2] ui/EditorUI.h/.cpp<br/>Configuración ImGui y FPS"]:::devB
+        A1["[#1 REQ-A1] core/Shader<br/>Compilación y Uniforms"]:::devA
+        B1["[#2 REQ-B1] graphics/Mesh<br/>Buffers VAO/VBO/EBO"]:::devB
+        A1 --> A2["[#3 REQ-A2] core/Camera<br/>LookAt, Proyección y WASD"]:::devA
+        B1 --> B2["[#4 REQ-B2] ui/EditorUI<br/>Configuración ImGui y FPS"]:::devB
+        A2 & B2 --> INT1["[#16 INT-01] Consolidación Hito 1<br/>Inicialización GLFW/GLAD y bucle base"]:::sync
     end
 
     subgraph FASE_2 ["Fase 2: Geometría e Iluminación"]
-        B1 --> A3["[A3] graphics/Primitives.h/.cpp<br/>Cubo, Pirámide, Esfera, Cilindro"]:::devA
-        B1 --> B3["[B3] graphics/Model.h/.cpp<br/>Carga OBJ y MTL (Kd)"]:::devB
-        B3 --> B4["[B4] Model Normalización<br/>Cálculo Normales y [-1, 1]"]:::devB
-        A1 --> A4["[A4] Shaders Base Lambert<br/>Iluminación y Canal Alfa (Blend)"]:::devA
+        B1 --> A3["[#5 REQ-A3] graphics/Primitives<br/>Cubo, Pirámide, Esfera, Cilindro"]:::devA
+        A1 --> A4["[#8 REQ-A4] Shaders Base Lambert<br/>Iluminación y Canal Alfa (Blend)"]:::devA
+        B1 --> B3["[#6 REQ-B3] graphics/Model<br/>Carga OBJ y MTL (Kd)"]:::devB
+        B3 --> B4["[#7 REQ-B4] Model Normalización<br/>Cálculo Normales y [-1, 1]"]:::devB
     end
 
-    subgraph FASE_3 ["Fase 3: Escena, Jerarquía y Pipeline"]
-        A2 & A3 & B4 & A4 --> B5["[B5] scene/Scene.h/.cpp<br/>Jerarquía y Propagación"]:::devB
-        B2 & B5 --> B6["[B6] EditorUI Controles<br/>Depth Test, Culling y Sliders"]:::devB
+    subgraph FASE_3 ["Fase 3: Escena, UI y Color Picking en Paralelo"]
+        INT1 & A3 & A4 & B4 --> B5["[#9 REQ-B5] scene/Scene<br/>Jerarquía y Propagación"]:::devB
+        B2 & B5 --> B6["[#10 REQ-B6] EditorUI Controles<br/>Depth Test, Culling y Sliders"]:::devB
+
+        INT1 --> A5["[#11 REQ-A5] graphics/Framebuffer<br/>FBO Off-screen y glReadPixels"]:::devA
+        A5 --> A6["[#12 REQ-A6] Shaders de Picking<br/>Picking Global y Local"]:::devA
+        A6 --> A7["[#13 REQ-A7] Picking por Triángulo<br/>Selección y Marcado Visual"]:::devA
+
+        B6 & A7 --> INT2["[#17 INT-02] Consolidación Hito 3<br/>Integración Escena, UI y Color Picking"]:::sync
     end
 
-    subgraph FASE_4 ["Fase 4: Color Picking en FBO"]
-        B5 --> A5["[A5] graphics/Framebuffer.h/.cpp<br/>FBO Off-screen y glReadPixels"]:::devA
-        A5 --> A6["[A6] Shaders de Picking<br/>Picking Global y Local"]:::devA
-        A6 & B6 --> A7["[A7] Picking por Triángulo<br/>Selección y Marcado Visual"]:::devA
+    subgraph FASE_4 ["Fase 4: Inspección, Persistencia y Cierre Final"]
+        INT2 --> A8["[#14 REQ-A8] Debug Shaders<br/>Bounding Box, Normales y Puntos"]:::devA
+        INT2 --> B7["[#15 REQ-B7] scene/SceneSerializer<br/>Guardar y Cargar Escena"]:::devB
+        A8 & B7 --> INT3["[#18 INT-03] Consolidación Hito 4<br/>Verificación Multiplataforma (Linux/Windows)"]:::sync
     end
-
-    subgraph FASE_5 ["Fase 5: Inspección Visual y Persistencia"]
-        A7 & B5 --> A8["[A8] Debug Shaders<br/>Bounding Box, Normales y Puntos"]:::devA
-        B5 & B6 --> B7["[B7] scene/SceneSerializer.h/.cpp<br/>Guardar y Cargar Escena"]:::devB
-    end
-
-    SYNC1["Hito 1: Render Básico Funcional"]:::sync
-    FASE_1 --> SYNC1
-    SYNC2["Hito 2: Modelos e Iluminación"]:::sync
-    FASE_2 --> SYNC2
-    SYNC3["Hito 3: Escena Interactiva"]:::sync
-    FASE_3 --> SYNC3
-    SYNC4["Hito 4: Selección de Objetos FBO"]:::sync
-    FASE_4 --> SYNC4
-    SYNC5["Hito Final: Entrega Completa"]:::sync
-    FASE_5 --> SYNC5
 ```
 
 ---
 
 ## 📅 3. Desglose de Fases de Desarrollo
 
-### 🟢 FASE 1: Cimientos y Fundamentos de OpenGL
+### 🟢 FASE 1: Cimientos y Fundamentos de OpenGL (Milestone #1)
 * **Objetivo:** Establecer la infraestructura base de compilación de shaders, estructuración de memoria en la GPU y movimiento en el espacio tridimensional.
-* **Tareas en Paralelo:**
-  - **Dev A:** `[A1]` Implementación de `core/Shader` (manejo de archivos de shaders y uniformes). A continuación, `[A2]` `core/Camera` (matrices LookAt, proyección en perspectiva y controles WASD + Mouse).
-  - **Dev B:** `[B1]` Implementación de `graphics/Mesh` (encapsulación de VAO, VBO, EBO con layout de vértice: posición, normal, coordenadas de textura). A continuación, `[B2]` `ui/EditorUI` (inicialización de Dear ImGui con GLFW/OpenGL3 y despliegue del medidor de FPS).
-* **Entregable del Hito 1:** Una ventana interactiva donde la cámara puede navegar en el espacio y renderizar un triángulo con un shader básico, mostrando el panel de ImGui con los FPS.
+* **Trabajo en Paralelo:**
+  - **Dev A:** `[#1 REQ-A1]` Implementación de `core/Shader` (lectura de disco y uniformes). Seguidamente, `[#3 REQ-A2]` `core/Camera` (matrices LookAt, proyección en perspectiva y controles WASD + Mouse).
+  - **Dev B:** `[#2 REQ-B1]` Implementación de `graphics/Mesh` (encapsulación de VAO, VBO, EBO con layout de vértices y modos de dibujo). Seguidamente, `[#4 REQ-B2]` `ui/EditorUI` (inicialización de Dear ImGui con GLFW/OpenGL3 y medidor de FPS).
+* **🤝 Punto de Consolidación Conjunta (`[#16 INT-01]`):**
+  - Ambos desarrolladores trabajan en `src/main.cpp` para inicializar GLFW, cargar GLAD, conectar los callbacks de la cámara y abrir la ventana con una geometría de prueba y el panel de FPS.
 
 ---
 
-### 🟡 FASE 2: Geometría e Iluminación
-* **Objetivo:** Disponer de todas las formas geométricas (tanto matemáticas como importadas) con el modelo de reflexión difusa (Lambert).
-* **Tareas en Paralelo:**
-  - **Dev A:** `[A3]` Generación procedimental de primitivas matemáticas en `graphics/Primitives` (Cubo, Pirámide, Esfera y Cilindro con cálculo analítico de normales). A continuación, `[A4]` Puesta a punto de `assets/shaders/default.vert` y `default.frag` (Lambert provisto por la cátedra más configuración de `GL_BLEND` con canal alfa).
-  - **Dev B:** `[B3]` Parseo de archivos `.obj` y extracción del color difuso $K_d$ de archivos `.mtl` en `graphics/Model` con `tinyobjloader`. A continuación, `[B4]` Algoritmo de normalización (centrado y escalado al rango $[-1, 1]$) y cálculo automático de normales promedio por producto cruz para modelos que carecen de ellas.
-* **Entregable del Hito 2:** Visualización simultánea de primitivas (cubo, esfera, etc.) y mallas cargadas por OBJ con iluminación difusa suave y soporte de transparencia alfa.
+### 🟡 FASE 2: Geometría e Iluminación (Milestone #2)
+* **Objetivo:** Disponer de todas las formas geométricas (tanto procedimentales como importadas) con el modelo de reflexión difusa (Lambert).
+* **Trabajo en Paralelo:**
+  - **Dev A:** `[#5 REQ-A3]` Generación procedimental de primitivas matemáticas en `graphics/Primitives` (Cubo, Pirámide, Esfera y Cilindro con cálculo analítico de normales). A continuación, `[#8 REQ-A4]` Puesta a punto de `assets/shaders/default.vert` y `default.frag` (Lambert provisto por la cátedra más configuración de `GL_BLEND` con canal alfa).
+  - **Dev B:** `[#6 REQ-B3]` Parseo de archivos `.obj` y extracción del color difuso $K_d$ de archivos `.mtl` en `graphics/Model` con `tinyobjloader`. A continuación, `[#7 REQ-B4]` Algoritmo de normalización (centrado y escalado al rango $[-1, 1]$) y cálculo de normales promedio para modelos que carecen de ellas.
+* **Entregable del Hito 2:** Biblioteca geométrica completa y shaders difusos validados para recibir cualquier modelo.
 
 ---
 
-### 🟠 FASE 3: Escena, Jerarquía y Control de Pipeline
-* **Objetivo:** Administrar los objetos como entidades dentro de un mundo coherente y permitir la manipulación de estados gráficos.
-* **Tareas en Paralelo:**
-  - **Dev A:** Asistir en la verificación matemática de las matrices de rotación sobre el propio eje local y pruebas de consistencia geométrica.
-  - **Dev B:** `[B5]` Implementación de `scene/Scene` y `SceneObject` (gestión de lista de entidades, matrices de traslación, rotación local, escalado, eliminación y propagación jerárquica obligatoria hacia sub-mallados). A continuación, `[B6]` Incorporación en `EditorUI` de conmutadores para **Depth Test** (`GL_DEPTH_TEST`), **Back-Face Culling** (`GL_CULL_FACE`), color de fondo (`glClearColor`), sliders de transformación y botón para vaciar la escena.
-* **Entregable del Hito 3:** Un editor 3D completamente operable donde se pueden instanciar objetos, transformarlos desde la interfaz, cambiar el fondo de pantalla y conmutar el Depth Test y el Culling.
+### 🟠 FASE 3: Escena, UI y Color Picking en Paralelo (Milestone #3)
+* **Objetivo:** Mientras el Dev B construye la gestión de entidades y controles de UI, el Dev A implementa el sistema de selección por búfer fuera de pantalla (FBO). **Ambos avanzan simultáneamente**.
+* **Trabajo en Paralelo:**
+  - **Dev B (Línea de Escena y UI):**
+    - `[#9 REQ-B5]` Implementación de `scene/Scene` y `SceneObject` (jerarquía de transformaciones, rotación en propio eje local, eliminación y propagación hacia sub-mallados).
+    - `[#10 REQ-B6]` Controles en `EditorUI` para conmutar **Depth Test**, **Back-Face Culling**, color de fondo (`glClearColor`), sliders de transformación y borrado total de escena.
+  - **Dev A (Línea de Selección y Shaders):**
+    - `[#11 REQ-A5]` Implementación de `graphics/Framebuffer` (creación de FBO, textura RGB de color, renderbuffer de profundidad y lectura con `glReadPixels`).
+    - `[#12 REQ-A6]` Shaders de picking (`picking.vert` / `picking.frag`) para codificación y decodificación de IDs en modo Global (objeto entero) y modo Local (sub-mallado individual).
+    - `[#13 REQ-A7]` Selección por Triángulo individual y su marcado visual distintivo.
+* **🤝 Punto de Consolidación Conjunta (`[#17 INT-02]`):**
+  - Ambos desarrolladores unifican en `src/main.cpp` la llamada a `scene.render()` con el evento de clic del ratón que dispara la pasada en el `Framebuffer` de picking, conectando la selección con los paneles de propiedades de `EditorUI`.
 
 ---
 
-### 🔴 FASE 4: Selección Interactiva por Color Picking (FBO)
-* **Objetivo:** Dominar el renderizado fuera de pantalla para conseguir una selección de objetos pixel-perfect con el cursor.
-* **Tareas en Paralelo:**
-  - **Dev A:** `[A5]` Implementación de `graphics/Framebuffer` (creación de FBO, textura RGB de color y renderbuffer de profundidad, con lectura síncrona `glReadPixels`). Seguidamente, `[A6]` Shaders de picking (`picking.vert` / `picking.frag`) para codificación y decodificación de IDs en modo Global (objeto entero) y modo Local (sub-mallado individual). Por último, `[A7]` Extensión al modo Triángulo con marcado visual del polígono seleccionado.
-  - **Dev B:** Conectar la respuesta del Color Picking con la escena y la interfaz: al hacer clic, actualizar el objeto o sub-mallado seleccionado en `Scene` y sincronizar los paneles de propiedades de `EditorUI`.
-* **Entregable del Hito 4:** Al hacer clic sobre cualquier objeto de la escena con el mouse, este se selecciona automáticamente (en nivel global, local o por triángulo individual resaltado).
-
----
-
-### 🟣 FASE 5: Depuración Geométrica y Persistencia
-* **Objetivo:** Cumplir con los requisitos de inspección geométrica avanzada y almacenamiento permanente en disco.
-* **Tareas en Paralelo:**
-  - **Dev A:** `[A8]` Implementación de los modos de inspección sobre la entidad seleccionada: cálculo y renderizado del Bounding Box (AABB en wireframe), visualización de normales vectoriales (`GL_LINES`) y visualización de vértices en modo puntos (`GL_POINTS`).
-  - **Dev B:** `[B7]` Implementación de `scene/SceneSerializer` para serializar a archivo de texto / JSON y deserializar la escena completa (objetos, transformaciones, materiales, iluminación y fondo), integrando los botones de "Guardar Escena" y "Cargar Escena" en la UI.
-* **Entregable del Hito 5 (Final):** Aplicación completa lista para la defensa oral, cumpliendo el 100% de los requisitos obligatorios y de parejas.
+### 🟣 FASE 4: Inspección Geométrica, Persistencia y Cierre Final (Milestone #4)
+* **Objetivo:** Cumplir con los requisitos de depuración avanzada y almacenamiento permanente en disco, garantizando la compatibilidad multiplataforma en Linux y Windows.
+* **Trabajo en Paralelo:**
+  - **Dev A:** `[#14 REQ-A8]` Implementación de los modos de inspección sobre la entidad seleccionada: cálculo y renderizado del Bounding Box (AABB en wireframe), visualización de normales vectoriales (`GL_LINES`) y visualización de vértices en modo puntos (`GL_POINTS`).
+  - **Dev B:** `[#15 REQ-B7]` Implementación de `scene/SceneSerializer` para serializar a archivo de texto / JSON y deserializar la escena completa (objetos, transformaciones, materiales, iluminación y fondo), con botones en ImGui.
+* **🤝 Punto de Consolidación Conjunta (`[#18 INT-03]`):**
+  - Pruebas cruzadas obligatorias: Compilar y verificar el funcionamiento completo en **Linux** y en **Windows**.
+  - Empaquetado final del archivo `.zip` para entrega formal y preparación para la defensa oral.
 
 ---
 
@@ -125,14 +115,17 @@ flowchart TD
 
 | Módulo / Archivos | Responsable Principal | Rol del Compañero |
 | :--- | :---: | :--- |
-| `src/core/Shader.h/.cpp` | **Dev A** | Consumo y validación en renderizado |
-| `src/core/Camera.h/.cpp` | **Dev A** | Integración en bucle principal |
-| `src/graphics/Mesh.h/.cpp` | **Dev B** | Consumo en shaders y render |
-| `src/graphics/Primitives.h/.cpp` | **Dev A** | Registro en la escena |
-| `src/graphics/Model.h/.cpp` | **Dev B** | Revisión de cálculo de normales |
-| `src/graphics/Framebuffer.h/.cpp` | **Dev A** | Integración en eventos del mouse |
-| `src/scene/Scene.h/.cpp` | **Dev B** | Soporte para selección y picking |
-| `src/scene/SceneSerializer.h/.cpp` | **Dev B** | Pruebas de persistencia cruzada |
-| `src/ui/EditorUI.h/.cpp` | **Dev B** | Enlace de controles de picking |
-| `src/main.cpp` | **Compartido** | Integración continua en cada hito |
-| `assets/shaders/*` | **Dev A** | Verificación de uniforms y compatibilidad |
+| `src/core/Shader.h/.cpp` ([#1](https://github.com/MiguelCiav/proyecto-2-grafica/issues/1)) | **Dev A** | Consumo y validación en renderizado |
+| `src/core/Camera.h/.cpp` ([#3](https://github.com/MiguelCiav/proyecto-2-grafica/issues/3)) | **Dev A** | Consumo en bucle principal |
+| `src/graphics/Mesh.h/.cpp` ([#2](https://github.com/MiguelCiav/proyecto-2-grafica/issues/2)) | **Dev B** | Consumo en shaders y render |
+| `src/ui/EditorUI.h/.cpp` (Base) ([#4](https://github.com/MiguelCiav/proyecto-2-grafica/issues/4)) | **Dev B** | Enlace de eventos y FPS |
+| `src/graphics/Primitives.h/.cpp` ([#5](https://github.com/MiguelCiav/proyecto-2-grafica/issues/5)) | **Dev A** | Registro en la escena |
+| `src/graphics/Model.h/.cpp` ([#6](https://github.com/MiguelCiav/proyecto-2-grafica/issues/6), [#7](https://github.com/MiguelCiav/proyecto-2-grafica/issues/7)) | **Dev B** | Revisión de cálculo de normales |
+| `assets/shaders/default.*` ([#8](https://github.com/MiguelCiav/proyecto-2-grafica/issues/8)) | **Dev A** | Verificación de uniforms y blending |
+| `src/scene/Scene.h/.cpp` ([#9](https://github.com/MiguelCiav/proyecto-2-grafica/issues/9)) | **Dev B** | Soporte para selección y picking |
+| `src/ui/EditorUI.h/.cpp` (Controles) ([#10](https://github.com/MiguelCiav/proyecto-2-grafica/issues/10)) | **Dev B** | Enlace de controles de picking |
+| `src/graphics/Framebuffer.h/.cpp` ([#11](https://github.com/MiguelCiav/proyecto-2-grafica/issues/11)) | **Dev A** | Integración en eventos del mouse |
+| `assets/shaders/picking.*` ([#12](https://github.com/MiguelCiav/proyecto-2-grafica/issues/12), [#13](https://github.com/MiguelCiav/proyecto-2-grafica/issues/13)) | **Dev A** | Conexión con IDs de escena |
+| `assets/shaders/debug.*` ([#14](https://github.com/MiguelCiav/proyecto-2-grafica/issues/14)) | **Dev A** | Conexión con AABB de escena |
+| `src/scene/SceneSerializer.h/.cpp` ([#15](https://github.com/MiguelCiav/proyecto-2-grafica/issues/15)) | **Dev B** | Pruebas de persistencia cruzada |
+| `src/main.cpp` (`INT-01`, `INT-02`, `INT-03`) ([#16](https://github.com/MiguelCiav/proyecto-2-grafica/issues/16), [#17](https://github.com/MiguelCiav/proyecto-2-grafica/issues/17), [#18](https://github.com/MiguelCiav/proyecto-2-grafica/issues/18)) | **Compartido (Dev A + Dev B)** | Integración conjunta en cada hito |
