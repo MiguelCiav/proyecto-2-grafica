@@ -1,0 +1,58 @@
+# Carpetas de compilación y salida
+build/
+bin/
+out/
+cmake-build-*/
+.cache/
+
+# Archivos generados por CMake
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+
+# Archivos generados en tiempo de ejecución
+imgui.ini
+
+# IDEs y Editores
+.vs/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Binarios y objetos de compilación
+*.exe
+*.out
+*.app
+*.dll
+*.so
+*.dylib
+*.lib
+*.a
+*.pdb
+*.ilk
+*.o
+*.obj
+
+# EXCEPCIÓN: No ignorar modelos 3D Wavefront (.obj) dentro de assets/
+!assets/**/*.obj
+!assets/*.obj
+
+# Logs y volcados
+*.log
+*.tlog
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
