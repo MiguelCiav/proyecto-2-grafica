@@ -142,29 +142,36 @@ int main() {
     auto cubeModel = std::make_shared<Model>("assets/models/cube.obj");
     auto bunnyModel = std::make_shared<Model>("assets/models/bunny.obj");
     auto teapotModel = std::make_shared<Model>("assets/models/teapot.obj");
+    auto pandaModel = std::make_shared<Model>("assets/models/panda.obj");
 
     // 1. Suelo plano de referencia
     auto floorObj = scene.addObject("Suelo Gris", cubeModel);
     floorObj->transform.position = glm::vec3(0.0f, -1.0f, 0.0f);
-    floorObj->transform.scale = glm::vec3(6.0f, 0.1f, 6.0f);
+    floorObj->transform.scale = glm::vec3(7.0f, 0.1f, 7.0f);
     floorObj->color = glm::vec4(0.35f, 0.35f, 0.4f, 1.0f);
 
-    // 2. Stanford Bunny (blanco marfil)
+    // 2. Oso Panda 3D en el centro
+    auto pandaObj = scene.addObject("Oso Panda", pandaModel);
+    pandaObj->transform.position = glm::vec3(0.0f, 0.0f, 0.3f);
+    pandaObj->transform.scale = glm::vec3(1.0f, 1.0f, 1.0f);
+    pandaObj->color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+    // 3. Stanford Bunny (blanco marfil) a la izquierda
     auto bunnyObj = scene.addObject("Stanford Bunny", bunnyModel);
-    bunnyObj->transform.position = glm::vec3(-1.2f, 0.0f, 0.0f);
-    bunnyObj->transform.scale = glm::vec3(1.1f, 1.1f, 1.1f);
+    bunnyObj->transform.position = glm::vec3(-2.0f, 0.0f, 0.0f);
+    bunnyObj->transform.scale = glm::vec3(1.0f, 1.0f, 1.0f);
     bunnyObj->color = glm::vec4(0.9f, 0.88f, 0.85f, 1.0f);
 
-    // 3. Utah Teapot (bronce / cobre)
+    // 4. Utah Teapot (bronce / cobre) a la derecha
     auto teapotObj = scene.addObject("Utah Teapot", teapotModel);
-    teapotObj->transform.position = glm::vec3(1.2f, -0.2f, 0.0f);
+    teapotObj->transform.position = glm::vec3(2.0f, -0.2f, 0.0f);
     teapotObj->transform.scale = glm::vec3(0.9f, 0.9f, 0.9f);
     teapotObj->color = glm::vec4(0.85f, 0.45f, 0.2f, 1.0f);
 
-    // 4. Cubo de referencia en modo Wireframe al fondo
+    // 5. Cubo de referencia en modo Wireframe al fondo
     auto wireCube = scene.addObject("Cubo Alambre (Fondo)", cubeModel);
-    wireCube->transform.position = glm::vec3(0.0f, 0.6f, -2.5f);
-    wireCube->transform.scale = glm::vec3(1.3f, 1.3f, 1.3f);
+    wireCube->transform.position = glm::vec3(0.0f, 0.8f, -3.0f);
+    wireCube->transform.scale = glm::vec3(1.5f, 1.5f, 1.5f);
     wireCube->color = glm::vec4(0.2f, 0.85f, 0.95f, 1.0f);
     wireCube->showWireframe = true;
 
@@ -205,6 +212,7 @@ int main() {
     cubeModel.reset();
     bunnyModel.reset();
     teapotModel.reset();
+    pandaModel.reset();
     editorUI.shutdown();
     glfwDestroyWindow(window);
     glfwTerminate();

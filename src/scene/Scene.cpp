@@ -73,7 +73,6 @@ void Scene::render(Shader& shader, const glm::mat4& view, const glm::mat4& proje
         }
 
         shader.setMat4("model", obj->getModelMatrix());
-        shader.setVec4("objectColor", obj->color);
 
         DrawMode mode = DrawMode::Fill;
         if (obj->showWireframe) {
@@ -82,6 +81,16 @@ void Scene::render(Shader& shader, const glm::mat4& view, const glm::mat4& proje
             mode = DrawMode::Points;
         }
 
-        obj->model->draw(mode);
+        const auto& subMeshes = obj->model->getSubMeshes();
+        if (subMeshes.size() > 1) {
+            for (const auto& subMesh : subMeshes) {
+                glm::vec4 finalColor = subMesh.diffuseColor * obj->color;
+                shader.setVec4("objectColor", finalColor);
+                subMesh.mesh.draw(mode);
+            }
+        } else {
+            shader.setVec4("objectColor", obj->color);
+            obj->model->draw(mode);
+        }
     }
 }
