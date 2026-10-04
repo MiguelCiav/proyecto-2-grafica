@@ -79,7 +79,7 @@ flowchart TD
 ### 🟡 FASE 2: Geometría e Iluminación (Milestone #2)
 * **Objetivo:** Disponer de todas las formas geométricas (tanto procedimentales como importadas) con el modelo de reflexión difusa (Lambert).
 * **Trabajo en Paralelo:**
-  - **Dev A:** `[#5 REQ-A3]` Generación procedimental de primitivas matemáticas en `graphics/Primitives` (Cubo, Pirámide, Esfera y Cilindro con cálculo analítico de normales). A continuación, `[#8 REQ-A4]` Puesta a punto de `assets/shaders/default.vert` y `default.frag` (Lambert provisto por la cátedra más configuración de `GL_BLEND` con canal alfa).
+  - **Dev A:** `[#5 REQ-A3]` Generación procedimental de primitivas matemáticas en `graphics/Primitives` (Cubo, Pirámide, Esfera y Cilindro con cálculo analítico de normales). A continuación, `[#8 REQ-A4]` Puesta a punto de `assets/shaders/base.vert` y `base.frag` (Lambert provisto por la cátedra más configuración de `GL_BLEND` con canal alfa).
   - **Dev B:** `[#6 REQ-B3]` Parseo de archivos `.obj` y extracción del color difuso $K_d$ de archivos `.mtl` en `graphics/Model` con `tinyobjloader`. A continuación, `[#7 REQ-B4]` Algoritmo de normalización (centrado y escalado al rango $[-1, 1]$) y cálculo de normales promedio para modelos que carecen de ellas.
 * **Entregable del Hito 2:** Biblioteca geométrica completa y shaders difusos validados para recibir cualquier modelo.
 
@@ -121,7 +121,7 @@ flowchart TD
 | `src/ui/EditorUI.h/.cpp` (Base) ([#4](https://github.com/MiguelCiav/proyecto-2-grafica/issues/4)) | **Dev B** | Enlace de eventos y FPS |
 | `src/graphics/Primitives.h/.cpp` ([#5](https://github.com/MiguelCiav/proyecto-2-grafica/issues/5)) | **Dev A** | Registro en la escena |
 | `src/graphics/Model.h/.cpp` ([#6](https://github.com/MiguelCiav/proyecto-2-grafica/issues/6), [#7](https://github.com/MiguelCiav/proyecto-2-grafica/issues/7)) | **Dev B** | Revisión de cálculo de normales |
-| `assets/shaders/default.*` ([#8](https://github.com/MiguelCiav/proyecto-2-grafica/issues/8)) | **Dev A** | Verificación de uniforms y blending |
+| `assets/shaders/base.*` ([#8](https://github.com/MiguelCiav/proyecto-2-grafica/issues/8)) | **Dev A** | Verificación de uniforms y blending |
 | `src/scene/Scene.h/.cpp` ([#9](https://github.com/MiguelCiav/proyecto-2-grafica/issues/9)) | **Dev B** | Soporte para selección y picking |
 | `src/ui/EditorUI.h/.cpp` (Controles) ([#10](https://github.com/MiguelCiav/proyecto-2-grafica/issues/10)) | **Dev B** | Enlace de controles de picking |
 | `src/graphics/Framebuffer.h/.cpp` ([#11](https://github.com/MiguelCiav/proyecto-2-grafica/issues/11)) | **Dev A** | Integración en eventos del mouse |

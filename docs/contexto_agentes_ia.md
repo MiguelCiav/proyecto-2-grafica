@@ -54,8 +54,8 @@ Toda contribución de código debe ubicarse estrictamente dentro del módulo asi
 ├── assets/
 │   ├── models/                  <- Archivos .obj y .mtl descargados o de prueba
 │   └── shaders/
-│       ├── default.vert         <- Vertex Shader con modelo de iluminación (provisto por la cátedra)
-│       ├── default.frag         <- Fragment Shader Lambert + canal Alfa (provisto por la cátedra)
+│       ├── base.vert            <- Vertex Shader con modelo de iluminación (provisto por la cátedra)
+│       ├── base.frag            <- Fragment Shader Lambert + canal Alfa en objectColor (provisto por la cátedra)
 │       ├── picking.vert         <- Shader para renderizado de IDs unívocos en color
 │       ├── picking.frag         <- Emisión del ID codificado en formato RGB
 │       ├── debug.vert           <- Shader auxiliar para líneas y puntos de depuración
@@ -92,8 +92,8 @@ Cualquier agente que genere o modifique código debe acatar sin excepción las s
 * **Cabeceras C++ (`.h`):** Evitar incluir `<GLFW/glfw3.h>` en archivos `.h`. Usar *forward declaration* (`struct GLFWwindow;`) para no contaminar el orden de inclusión en unidades de traducción dependientes.
 
 ### 2. Integridad de los Shaders de la Cátedra
-* **Regla:** El modelo de iluminación difusa (Lambert) en `assets/shaders/default.vert` y `default.frag` es suministrado por la cátedra. **Está estrictamente prohibido alterar la matemática de iluminación**.
-* El código C++ debe suministrar los atributos (`aPos`, `aNormal`, `aTexCoords`) y uniforms requeridos (`model`, `view`, `projection`, `lightPos`, `lightColor`, `objectColor`, `alpha`).
+* **Regla:** El modelo de iluminación difusa (Lambert) en `assets/shaders/base.vert` y `base.frag` es suministrado por la cátedra. **Está estrictamente prohibido alterar la matemática de iluminación**.
+* El código C++ debe suministrar los atributos (`aPos`, `aNormal`) y uniforms requeridos (`model`, `view`, `projection`, `lightDir`, `lightColor`, `ambientLight`, `objectColor` en formato vec4 con canal alfa en `objectColor.a`).
 
 ### 3. Prohibición de Shaders Embebidos como Cadenas en C++
 * **Regla:** Ningún shader debe declararse como `const char*` o `std::string` dentro de archivos C++. Todos deben residir en `assets/shaders/` y ser leídos desde el sistema de archivos por `Shader.h/.cpp`.
@@ -127,7 +127,7 @@ Cualquier agente que genere o modifique código debe acatar sin excepción las s
 ### 9. Compatibilidad Multiplataforma Estricta (Linux / Windows)
 * **Regla:** Dado que los integrantes desarrollan en diferentes sistemas operativos (Linux y Windows):
   - **Rutas de archivos:** Utilizar **siempre barras inclinadas hacia adelante (`/`)** en las rutas relativas de C++, CMake y GLSL, nunca barras invertidas de Windows (`\`). Usar `std::filesystem::path` para manipulación de rutas en C++.
-  - **Sensibilidad a Mayúsculas/Minúsculas (*Case Sensitivity*):** Linux distingue estrictamente entre mayúsculas y minúsculas (a diferencia del sistema de archivos NTFS de Windows). Todas las inclusiones `#include` y rutas a assets deben coincidir **exactamente** con el nombre real del archivo en disco (ej. `core/Shader.h`, `assets/shaders/default.vert`).
+  - **Sensibilidad a Mayúsculas/Minúsculas (*Case Sensitivity*):** Linux distingue estrictamente entre mayúsculas y minúsculas (a diferencia del sistema de archivos NTFS de Windows). Todas las inclusiones `#include` y rutas a assets deben coincidir **exactamente** con el nombre real del archivo en disco (ej. `core/Shader.h`, `assets/shaders/base.vert`).
   - **Prohibición de cabeceras exclusivas de SO:** No incluir `<windows.h>`, `<unistd.h>` ni funciones no estándar de compiladores concretos (como `fopen_s`). Toda la interacción con ventanas, contexto y entrada debe canalizarse a través de GLFW, GLM y la biblioteca estándar de C++17.
   - **Portabilidad en CMake:** No usar bibliotecas o flags fijas dependientes del SO (como `opengl32.lib` o `-lGL`). Utilizar los targets portables de CMake (`OpenGL::GL`, `glfw`, `glad`).
 
