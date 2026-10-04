@@ -16,6 +16,63 @@ EditorUI::~EditorUI() {
     shutdown();
 }
 
+static void setupCustomTheme() {
+    ImGuiStyle& style = ImGui::GetStyle();
+
+    // Redondeos modernos
+    style.WindowRounding    = 0.0f;  // Sin bordes redondeados en la ventana lateral
+    style.ChildRounding     = 6.0f;
+    style.FrameRounding     = 5.0f;  // Sliders, inputs y botones
+    style.PopupRounding     = 6.0f;
+    style.ScrollbarRounding = 9.0f;
+    style.GrabRounding      = 5.0f;  // Pestañas de sliders
+    style.TabRounding       = 6.0f;  // Pestañas superiores
+
+    // Espaciado y respiro visual
+    style.WindowPadding     = ImVec2(14.0f, 14.0f);
+    style.FramePadding      = ImVec2(8.0f, 6.0f);
+    style.ItemSpacing       = ImVec2(10.0f, 8.0f);
+    style.ItemInnerSpacing  = ImVec2(8.0f, 6.0f);
+    style.ScrollbarSize     = 12.0f;
+
+    // Paleta de colores Dark Modern (Gris Carbón + Acento Azul Eléctrico)
+    ImVec4* colors = style.Colors;
+    colors[ImGuiCol_WindowBg]             = ImVec4(0.12f, 0.13f, 0.15f, 1.00f);
+    colors[ImGuiCol_ChildBg]              = ImVec4(0.09f, 0.10f, 0.12f, 0.60f);
+    colors[ImGuiCol_PopupBg]              = ImVec4(0.14f, 0.15f, 0.18f, 0.98f);
+    colors[ImGuiCol_Border]               = ImVec4(0.20f, 0.22f, 0.26f, 0.60f);
+    colors[ImGuiCol_BorderShadow]         = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+    colors[ImGuiCol_FrameBg]              = ImVec4(0.18f, 0.19f, 0.23f, 1.00f);
+    colors[ImGuiCol_FrameBgHovered]       = ImVec4(0.24f, 0.26f, 0.31f, 1.00f);
+    colors[ImGuiCol_FrameBgActive]        = ImVec4(0.28f, 0.31f, 0.37f, 1.00f);
+    colors[ImGuiCol_TitleBg]              = ImVec4(0.10f, 0.11f, 0.13f, 1.00f);
+    colors[ImGuiCol_TitleBgActive]        = ImVec4(0.12f, 0.13f, 0.15f, 1.00f);
+    colors[ImGuiCol_TitleBgCollapsed]     = ImVec4(0.10f, 0.11f, 0.13f, 1.00f);
+    colors[ImGuiCol_ScrollbarBg]          = ImVec4(0.10f, 0.10f, 0.12f, 0.40f);
+    colors[ImGuiCol_ScrollbarGrab]        = ImVec4(0.25f, 0.27f, 0.33f, 1.00f);
+    colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.32f, 0.35f, 0.42f, 1.00f);
+    colors[ImGuiCol_ScrollbarGrabActive]  = ImVec4(0.38f, 0.42f, 0.50f, 1.00f);
+    colors[ImGuiCol_CheckMark]            = ImVec4(0.35f, 0.68f, 1.00f, 1.00f);
+    colors[ImGuiCol_SliderGrab]           = ImVec4(0.30f, 0.60f, 0.95f, 1.00f);
+    colors[ImGuiCol_SliderGrabActive]     = ImVec4(0.40f, 0.72f, 1.00f, 1.00f);
+    colors[ImGuiCol_Button]               = ImVec4(0.20f, 0.23f, 0.28f, 1.00f);
+    colors[ImGuiCol_ButtonHovered]        = ImVec4(0.28f, 0.34f, 0.42f, 1.00f);
+    colors[ImGuiCol_ButtonActive]         = ImVec4(0.34f, 0.40f, 0.50f, 1.00f);
+    colors[ImGuiCol_Header]               = ImVec4(0.20f, 0.23f, 0.28f, 1.00f);
+    colors[ImGuiCol_HeaderHovered]        = ImVec4(0.26f, 0.31f, 0.38f, 1.00f);
+    colors[ImGuiCol_HeaderActive]         = ImVec4(0.24f, 0.52f, 0.95f, 0.60f);
+    colors[ImGuiCol_Separator]            = ImVec4(0.20f, 0.22f, 0.26f, 1.00f);
+    colors[ImGuiCol_SeparatorHovered]     = ImVec4(0.30f, 0.55f, 0.90f, 1.00f);
+    colors[ImGuiCol_SeparatorActive]      = ImVec4(0.35f, 0.65f, 1.00f, 1.00f);
+    colors[ImGuiCol_Tab]                  = ImVec4(0.14f, 0.15f, 0.18f, 1.00f);
+    colors[ImGuiCol_TabHovered]           = ImVec4(0.26f, 0.30f, 0.36f, 1.00f);
+    colors[ImGuiCol_TabActive]            = ImVec4(0.22f, 0.48f, 0.88f, 1.00f);
+    colors[ImGuiCol_TabUnfocused]         = ImVec4(0.12f, 0.13f, 0.15f, 1.00f);
+    colors[ImGuiCol_TabUnfocusedActive]   = ImVec4(0.16f, 0.18f, 0.22f, 1.00f);
+    colors[ImGuiCol_Text]                 = ImVec4(0.92f, 0.93f, 0.95f, 1.00f);
+    colors[ImGuiCol_TextDisabled]         = ImVec4(0.50f, 0.53f, 0.58f, 1.00f);
+}
+
 void EditorUI::init(GLFWwindow* window) {
     if (m_initialized) return;
 
@@ -23,8 +80,9 @@ void EditorUI::init(GLFWwindow* window) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
-    // 2. Estilo visual oscuro
+    // 2. Estilo visual personalizado (Modern Dark Theme)
     ImGui::StyleColorsDark();
+    setupCustomTheme();
 
     // 3. Inicializar backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -63,25 +121,61 @@ void EditorUI::beginFrame() {
 }
 
 void EditorUI::render() {
+    ImGuiIO& io = ImGui::GetIO();
+    const float sidebarWidth = 360.0f;
+
+    ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - sidebarWidth, 0.0f), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(sidebarWidth, io.DisplaySize.y), ImGuiCond_Always);
+
+    ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoMove
+                                 | ImGuiWindowFlags_NoResize
+                                 | ImGuiWindowFlags_NoCollapse
+                                 | ImGuiWindowFlags_NoTitleBar;
+
+    ImGui::Begin("Panel del Editor", nullptr, windowFlags);
     renderPerformancePanel();
+    ImGui::Separator();
     renderRenderSettingsPanel();
+    ImGui::End();
 }
 
 void EditorUI::render(Scene& scene) {
-    // Ventana 1: Panel de Control del Motor
-    ImGui::Begin("Panel de Control");
-    renderPerformancePanel();
-    ImGui::Separator();
-    renderRenderSettingsPanel();
-    ImGui::Separator();
-    renderEnvironmentPanel(scene);
-    ImGui::End();
+    ImGuiIO& io = ImGui::GetIO();
+    const float sidebarWidth = 360.0f;
 
-    // Ventana 2: Inspector de Escena y Entidades
-    ImGui::Begin("Inspector de Escena");
-    renderSceneHierarchyPanel(scene);
-    ImGui::Separator();
-    renderPropertiesPanel(scene);
+    // Anclar la ventana al lateral derecho ocupando toda la altura de la pantalla
+    ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - sidebarWidth, 0.0f), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(sidebarWidth, io.DisplaySize.y), ImGuiCond_Always);
+
+    ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoMove
+                                 | ImGuiWindowFlags_NoResize
+                                 | ImGuiWindowFlags_NoCollapse
+                                 | ImGuiWindowFlags_NoTitleBar;
+
+    ImGui::Begin("Panel del Editor", nullptr, windowFlags);
+
+    if (ImGui::BeginTabBar("EditorTabBar")) {
+        // Pestaña 1: Jerarquía e Inspector de Entidades
+        if (ImGui::BeginTabItem("Escena")) {
+            renderSceneHierarchyPanel(scene);
+            ImGui::Separator();
+            renderPropertiesPanel(scene);
+            ImGui::EndTabItem();
+        }
+
+        // Pestaña 2: Ajustes de Render, Entorno y Rendimiento
+        if (ImGui::BeginTabItem("Ajustes")) {
+            renderPerformancePanel();
+            ImGui::Separator();
+            renderRenderSettingsPanel();
+            ImGui::Separator();
+            renderEnvironmentPanel(scene);
+            ImGui::EndTabItem();
+        }
+
+        ImGui::EndTabBar();
+    }
+
     ImGui::End();
 }
 
@@ -115,10 +209,14 @@ void EditorUI::renderEnvironmentPanel(Scene& scene) {
     ImGui::ColorEdit3("Luz Ambiental", glm::value_ptr(light.ambient));
 
     ImGui::Spacing();
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.55f, 0.16f, 0.18f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.72f, 0.20f, 0.22f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.45f, 0.12f, 0.14f, 1.0f));
     if (ImGui::Button("Limpiar Escena Completa", ImVec2(-1, 0))) {
         scene.clear();
         m_selectedObjectId = 0;
     }
+    ImGui::PopStyleColor(3);
 }
 
 void EditorUI::renderSceneHierarchyPanel(Scene& scene) {
@@ -179,10 +277,14 @@ void EditorUI::renderPropertiesPanel(Scene& scene) {
 
     // Botón para eliminar entidad individual
     ImGui::Spacing();
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.55f, 0.16f, 0.18f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.72f, 0.20f, 0.22f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.45f, 0.12f, 0.14f, 1.0f));
     if (ImGui::Button("Eliminar Entidad", ImVec2(-1, 0))) {
         scene.removeObject(m_selectedObjectId);
         m_selectedObjectId = 0;
     }
+    ImGui::PopStyleColor(3);
 }
 
 void EditorUI::endFrame() {
