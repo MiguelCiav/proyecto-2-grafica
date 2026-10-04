@@ -7,6 +7,8 @@
 #include "core/Shader.h"
 #include "core/Camera.h"
 #include "graphics/Mesh.h"
+#include "graphics/Model.h"
+#include "scene/Scene.h"
 #include "ui/EditorUI.h"
 
 #include <iostream>
@@ -136,7 +138,35 @@ int main() {
         20, 21, 22,  22, 23, 20  // Izquierda
     };
 
-    Mesh testMesh(cubeVertices, cubeIndices);
+    Scene scene;
+    auto cubeModel = std::make_shared<Model>("assets/models/cube.obj");
+    auto bunnyModel = std::make_shared<Model>("assets/models/bunny.obj");
+    auto teapotModel = std::make_shared<Model>("assets/models/teapot.obj");
+
+    // 1. Suelo plano de referencia
+    auto floorObj = scene.addObject("Suelo Gris", cubeModel);
+    floorObj->transform.position = glm::vec3(0.0f, -1.0f, 0.0f);
+    floorObj->transform.scale = glm::vec3(6.0f, 0.1f, 6.0f);
+    floorObj->color = glm::vec4(0.35f, 0.35f, 0.4f, 1.0f);
+
+    // 2. Stanford Bunny (blanco marfil)
+    auto bunnyObj = scene.addObject("Stanford Bunny", bunnyModel);
+    bunnyObj->transform.position = glm::vec3(-1.2f, 0.0f, 0.0f);
+    bunnyObj->transform.scale = glm::vec3(1.1f, 1.1f, 1.1f);
+    bunnyObj->color = glm::vec4(0.9f, 0.88f, 0.85f, 1.0f);
+
+    // 3. Utah Teapot (bronce / cobre)
+    auto teapotObj = scene.addObject("Utah Teapot", teapotModel);
+    teapotObj->transform.position = glm::vec3(1.2f, -0.2f, 0.0f);
+    teapotObj->transform.scale = glm::vec3(0.9f, 0.9f, 0.9f);
+    teapotObj->color = glm::vec4(0.85f, 0.45f, 0.2f, 1.0f);
+
+    // 4. Cubo de referencia en modo Wireframe al fondo
+    auto wireCube = scene.addObject("Cubo Alambre (Fondo)", cubeModel);
+    wireCube->transform.position = glm::vec3(0.0f, 0.6f, -2.5f);
+    wireCube->transform.scale = glm::vec3(1.3f, 1.3f, 1.3f);
+    wireCube->color = glm::vec4(0.2f, 0.85f, 0.95f, 1.0f);
+    wireCube->showWireframe = true;
 
     // 7. Bucle Principal de Renderizado
     while (!glfwWindowShouldClose(window)) {
@@ -148,38 +178,21 @@ int main() {
         // Procesar entradas de teclado
         processInput(window);
 
-        // Limpieza de los buffers de color y profundidad
-        glClearColor(0.12f, 0.12f, 0.14f, 1.0f);
+        // Limpieza de los buffers usando el color de fondo dinámico de la escena
+        const auto& bg = scene.getBackgroundColor();
+        glClearColor(bg.r, bg.g, bg.b, bg.a);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // Activación del shader y paso de matrices MVP
-        baseShader.use();
 
         float aspect = (SCR_HEIGHT > 0) ? (static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT)) : 1.0f;
         glm::mat4 projection = camera.getProjectionMatrix(aspect);
         glm::mat4 view = camera.getViewMatrix();
 
-        // Rotación suave del cubo de prueba para verificar profundidad y 3D en tiempo real
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::rotate(model, currentFrame * glm::radians(30.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+        // Renderizado centralizado de la escena 3D
+        scene.render(baseShader, view, projection);
 
-        baseShader.setMat4("projection", projection);
-        baseShader.setMat4("view", view);
-        baseShader.setMat4("model", model);
-
-        // Parámetros de iluminación difusa (Modelo Lambert provisto por la cátedra)
-        // objectColor: vec4 (RGB = color difuso kd, A = canal alfa para soporte de transparencia)
-        baseShader.setVec4("objectColor", glm::vec4(0.2f, 0.65f, 0.85f, 1.0f));
-        baseShader.setVec3("lightDir", glm::vec3(-0.2f, -1.0f, -0.3f));
-        baseShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
-        baseShader.setVec3("ambientLight", glm::vec3(0.2f, 0.2f, 0.2f));
-
-        // Dibujar la geometría de prueba
-        testMesh.draw(DrawMode::Fill);
-
-        // Renderizado de la interfaz ImGui (Panel de FPS y Rendimiento)
+        // Renderizado de la interfaz ImGui completa (conectada a la escena)
         editorUI.beginFrame();
-        editorUI.render();
+        editorUI.render(scene);
         editorUI.endFrame();
 
         // Intercambio de buffers y sondeo de eventos de ventana
@@ -188,6 +201,10 @@ int main() {
     }
 
     // 8. Liberación ordenada de recursos
+    scene.clear();
+    cubeModel.reset();
+    bunnyModel.reset();
+    teapotModel.reset();
     editorUI.shutdown();
     glfwDestroyWindow(window);
     glfwTerminate();
