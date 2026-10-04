@@ -13,8 +13,8 @@
 #include <vector>
 
 // Configuración inicial de la ventana
-unsigned int SCR_WIDTH = 1280;
-unsigned int SCR_HEIGHT = 720;
+unsigned int SCR_WIDTH = 800;
+unsigned int SCR_HEIGHT = 600;
 
 // Instancia global de la cámara (Dev A)
 Camera camera(glm::vec3(0.0f, 1.0f, 4.0f));
@@ -44,9 +44,9 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
+    #ifdef __APPLE__
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    #endif
 
     // 2. Creación de la ventana GLFW (1280x720)
     GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Proyecto #2 - Computación Gráfica (UCV)", nullptr, nullptr);
@@ -78,13 +78,15 @@ int main() {
     // Configuración inicial del viewport y estados de OpenGL
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // 4. Inicialización de Dear ImGui (Dev B)
     EditorUI editorUI;
     editorUI.init(window);
 
-    // 5. Carga y compilación de shaders base (Dev A)
-    Shader defaultShader("assets/shaders/default.vert", "assets/shaders/default.frag");
+    // 5. Carga y compilación de shaders base provistos por la cátedra (Dev A)
+    Shader baseShader("assets/shaders/base.vert", "assets/shaders/base.frag");
 
     // 6. Creación de geometría de prueba: Cubo 3D con normales y UVs (Dev B - Mesh)
     std::vector<Vertex> cubeVertices = {
@@ -151,7 +153,7 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Activación del shader y paso de matrices MVP
-        defaultShader.use();
+        baseShader.use();
 
         float aspect = (SCR_HEIGHT > 0) ? (static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT)) : 1.0f;
         glm::mat4 projection = camera.getProjectionMatrix(aspect);
@@ -161,15 +163,16 @@ int main() {
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::rotate(model, currentFrame * glm::radians(30.0f), glm::vec3(0.5f, 1.0f, 0.0f));
 
-        defaultShader.setMat4("projection", projection);
-        defaultShader.setMat4("view", view);
-        defaultShader.setMat4("model", model);
+        baseShader.setMat4("projection", projection);
+        baseShader.setMat4("view", view);
+        baseShader.setMat4("model", model);
 
-        // Parámetros de iluminación difusa (Lambert)
-        defaultShader.setVec3("lightPos", glm::vec3(2.0f, 4.0f, 3.0f));
-        defaultShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
-        defaultShader.setVec3("objectColor", glm::vec3(0.2f, 0.65f, 0.85f));
-        defaultShader.setFloat("alpha", 1.0f);
+        // Parámetros de iluminación difusa (Modelo Lambert provisto por la cátedra)
+        // objectColor: vec4 (RGB = color difuso kd, A = canal alfa para soporte de transparencia)
+        baseShader.setVec4("objectColor", glm::vec4(0.2f, 0.65f, 0.85f, 1.0f));
+        baseShader.setVec3("lightDir", glm::vec3(-0.2f, -1.0f, -0.3f));
+        baseShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+        baseShader.setVec3("ambientLight", glm::vec3(0.2f, 0.2f, 0.2f));
 
         // Dibujar la geometría de prueba
         testMesh.draw(DrawMode::Fill);
