@@ -43,7 +43,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
-void processInput(GLFWwindow* window);
+void processInput(GLFWwindow* window, Scene& scene, EditorUI& editorUI);
 
 GLFWwindow* initWindow(unsigned int width, unsigned int height, const char* title) {
     // 1. Inicialización y configuración de GLFW
@@ -283,7 +283,7 @@ int main(int argc, char* argv[]) {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        processInput(window);
+        processInput(window, scene, editorUI);
 
         // Limpieza de buffers usando el color de fondo dinámico de la escena
         const auto& bg = scene.getBackgroundColor();
@@ -317,9 +317,15 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-void processInput(GLFWwindow* window) {
+void processInput(GLFWwindow* window, Scene& scene, EditorUI& editorUI) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
+    }
+
+    // Comprobar si ImGui está capturando el teclado (por ejemplo, escribiendo en un InputText)
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.WantTextInput || io.WantCaptureKeyboard) {
+        return;
     }
 
     // Movimiento con teclas WASD escalado por deltaTime
@@ -335,6 +341,22 @@ void processInput(GLFWwindow* window) {
         camera.processKeyboard(CameraMovement::UP, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
         camera.processKeyboard(CameraMovement::DOWN, deltaTime);
+
+    // Atajo de teclado: Supr (Delete) o Backspace (Retroceso) para borrar la entidad seleccionada
+    static bool deleteKeyWasDown = false;
+    bool deleteKeyDown = (glfwGetKey(window, GLFW_KEY_DELETE) == GLFW_PRESS) ||
+                         (glfwGetKey(window, GLFW_KEY_BACKSPACE) == GLFW_PRESS);
+
+    if (deleteKeyDown && !deleteKeyWasDown) {
+        unsigned int selId = editorUI.getSelectedObjectId();
+        if (selId != 0) {
+            scene.removeObject(selId);
+            editorUI.setSelectedObjectId(0);
+            editorUI.setSelectedSubMeshIndex(-1);
+            editorUI.setSelectedTriangleIndex(-1);
+        }
+    }
+    deleteKeyWasDown = deleteKeyDown;
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {

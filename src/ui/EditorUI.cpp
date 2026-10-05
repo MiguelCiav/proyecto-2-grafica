@@ -249,6 +249,7 @@ void EditorUI::renderTopBar() {
         ImGui::BulletText("Click Derecho + Mouse: Rotar camara");
         ImGui::BulletText("Click Izquierdo: Seleccionar en escena");
         ImGui::BulletText("Scroll: Zoom");
+        ImGui::BulletText("Supr / Backspace: Borrar figura");
         ImGui::EndPopup();
     }
 }
@@ -727,96 +728,193 @@ void EditorUI::renderSceneHierarchyPanel(Scene& scene) {
     ImGui::EndChild();
 }
 
-void EditorUI::renderPrimitivesCreatorPanel(Scene& scene) {
-    if (ImGui::CollapsingHeader("Añadir Primitiva Geometrica")) {
-        const char* primitiveTypes[] = {"Cubo", "Piramide", "Esfera", "Cilindro"};
-        static int currentType = 0;
-        ImGui::Combo("Figura", &currentType, primitiveTypes, IM_ARRAYSIZE(primitiveTypes));
+static void drawPrimitiveIcon(ImDrawList* drawList, int type, ImVec2 center, float radius, ImU32 color) {
+    if (type == 0) { // Cubo (Isométrico 3D)
+        float r = radius;
+        ImVec2 pTop(center.x, center.y - r);
+        ImVec2 pTR(center.x + r * 0.866f, center.y - r * 0.5f);
+        ImVec2 pBR(center.x + r * 0.866f, center.y + r * 0.5f);
+        ImVec2 pBot(center.x, center.y + r);
+        ImVec2 pBL(center.x - r * 0.866f, center.y + r * 0.5f);
+        ImVec2 pTL(center.x - r * 0.866f, center.y - r * 0.5f);
 
-        static float cubeSize = 1.0f;
-        static float pyrBase = 1.0f, pyrHeight = 1.0f;
-        static float sphereRadius = 1.0f;
-        static int sphereSectors = 32, sphereStacks = 16;
-        static float cylRadius = 1.0f, cylHeight = 1.0f;
-        static int cylSectors = 32;
+        ImVec2 hex[6] = { pTop, pTR, pBR, pBot, pBL, pTL };
+        drawList->AddPolyline(hex, 6, color, ImDrawFlags_Closed, 1.5f);
+        drawList->AddLine(center, pTop, color, 1.5f);
+        drawList->AddLine(center, pBR, color, 1.5f);
+        drawList->AddLine(center, pBL, color, 1.5f);
+    }
+    else if (type == 1) { // Pirámide 3D
+        float r = radius;
+        ImVec2 apex(center.x, center.y - r);
+        ImVec2 bLeft(center.x - r * 0.85f, center.y + r * 0.5f);
+        ImVec2 bCenter(center.x - r * 0.05f, center.y + r * 0.95f);
+        ImVec2 bRight(center.x + r * 0.9f, center.y + r * 0.5f);
 
-        if (currentType == 0) { // Cubo
-            ImGui::DragFloat("Arista", &cubeSize, 0.05f, 0.1f, 20.0f);
-        } else if (currentType == 1) { // Pirámide
-            ImGui::DragFloat("Base", &pyrBase, 0.05f, 0.1f, 20.0f);
-            ImGui::DragFloat("Altura", &pyrHeight, 0.05f, 0.1f, 20.0f);
-        } else if (currentType == 2) { // Esfera
-            ImGui::DragFloat("Radio", &sphereRadius, 0.05f, 0.1f, 20.0f);
-            ImGui::SliderInt("Sectores", &sphereSectors, 3, 64);
-            ImGui::SliderInt("Anillos (Stacks)", &sphereStacks, 2, 32);
-        } else if (currentType == 3) { // Cilindro
-            ImGui::DragFloat("Radio", &cylRadius, 0.05f, 0.1f, 20.0f);
-            ImGui::DragFloat("Altura", &cylHeight, 0.05f, 0.1f, 20.0f);
-            ImGui::SliderInt("Sectores", &cylSectors, 3, 64);
-        }
+        drawList->AddLine(bLeft, bCenter, color, 1.5f);
+        drawList->AddLine(bCenter, bRight, color, 1.5f);
+        drawList->AddLine(bRight, bLeft, color, 1.0f);
 
-        if (ImGui::Button("Instanciar en Escena", ImVec2(-1, 0))) {
-            std::shared_ptr<Model> newModel = nullptr;
-            std::string name;
+        drawList->AddLine(apex, bLeft, color, 1.5f);
+        drawList->AddLine(apex, bCenter, color, 1.5f);
+        drawList->AddLine(apex, bRight, color, 1.5f);
+    }
+    else if (type == 2) { // Esfera 3D
+        float r = radius;
+        drawList->AddCircle(center, r, color, 16, 1.5f);
+        drawList->AddEllipse(center, ImVec2(r, r * 0.38f), color, 0.0f, 16, 1.2f);
+    }
+    else if (type == 3) { // Cilindro 3D
+        float rx = radius * 0.75f;
+        float ry = radius * 0.30f;
+        float hHalf = radius * 0.60f;
+        ImVec2 topCenter(center.x, center.y - hHalf);
+        ImVec2 botCenter(center.x, center.y + hHalf);
 
-            if (currentType == 0) {
-                newModel = Primitives::createCube(cubeSize);
-                name = "Cubo Procedimental";
-            } else if (currentType == 1) {
-                newModel = Primitives::createPyramid(pyrBase, pyrHeight);
-                name = "Piramide Procedimental";
-            } else if (currentType == 2) {
-                newModel = Primitives::createSphere(sphereRadius, sphereSectors, sphereStacks);
-                name = "Esfera Procedimental";
-            } else if (currentType == 3) {
-                newModel = Primitives::createCylinder(cylRadius, cylHeight, cylSectors);
-                name = "Cilindro Procedimental";
-            }
-
-            if (newModel) {
-                auto newObj = scene.addObject(name, newModel);
-                m_selectedObjectId = newObj->id;
-                scene.selectObject(newObj->id);
-                m_selectedSubMeshIndex = -1;
-                m_selectedTriangleIndex = -1;
-            }
-        }
+        drawList->AddEllipse(topCenter, ImVec2(rx, ry), color, 0.0f, 16, 1.3f);
+        drawList->AddEllipse(botCenter, ImVec2(rx, ry), color, 0.0f, 16, 1.3f);
+        drawList->AddLine(ImVec2(center.x - rx, topCenter.y), ImVec2(center.x - rx, botCenter.y), color, 1.5f);
+        drawList->AddLine(ImVec2(center.x + rx, topCenter.y), ImVec2(center.x + rx, botCenter.y), color, 1.5f);
     }
 }
 
-void EditorUI::renderModelImporterPanel(Scene& scene) {
-    if (ImGui::CollapsingHeader("Importar Modelo 3D (.obj / .mtl)")) {
-        ImGui::TextDisabled("Carga geometrias Wavefront .obj con materiales .mtl complementarios.");
-        ImGui::Spacing();
+void EditorUI::renderPrimitivesCreatorPanel(Scene& scene) {
+    ImGui::Text("Añadir Primitiva Geometrica:");
+    ImGui::Spacing();
 
-        // Botón principal para abrir la ventana modal flotante
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.38f, 0.62f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.24f, 0.48f, 0.78f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.14f, 0.30f, 0.50f, 1.0f));
+    static int currentType = 0;
+    const char* primitiveNames[] = {"Cubo", "Piramide", "Esfera", "Cilindro"};
 
-        if (ImGui::Button("Explorar y Cargar Modelo...", ImVec2(-1, 38))) {
-            refreshAvailableModelFiles();
-            m_showLoadModelModal = true;
-        }
-        ImGui::PopStyleColor(3);
+    float availW = ImGui::GetContentRegionAvail().x;
+    float btnW = (availW - 8.0f) * 0.5f;
+    float btnH = 40.0f;
 
-        // Mensaje de estado de la última importación
-        if (!m_modelImportStatus.empty()) {
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Spacing();
-            if (m_modelImportStatusIsError) {
-                ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.35f, 1.0f), "%s", m_modelImportStatus.c_str());
-            } else {
-                ImGui::TextColored(ImVec4(0.35f, 1.0f, 0.45f, 1.0f), "%s", m_modelImportStatus.c_str());
-            }
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+    // Matriz de botones 2x2 con figuritas vectoriales
+    for (int i = 0; i < 4; ++i) {
+        if (i % 2 != 0) {
+            ImGui::SameLine(0, 8.0f);
         }
 
-        ImGui::Spacing();
-        ImGui::TextDisabled("* Propiedades .mtl (Kd) cargadas de forma automatica.");
-        ImGui::TextDisabled("* Normales promedio calculadas si faltan.");
-        ImGui::TextDisabled("* Normalizado a [-1, 1] y centrado en origen.");
+        bool isSelected = (currentType == i);
+        if (isSelected) {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.45f, 0.75f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.26f, 0.55f, 0.88f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.16f, 0.38f, 0.65f, 1.0f));
+        }
+
+        std::string btnId = "##PrimBtn_" + std::to_string(i);
+        std::string labelText = std::string("       ") + primitiveNames[i];
+
+        if (ImGui::Button((labelText + btnId).c_str(), ImVec2(btnW, btnH))) {
+            currentType = i;
+        }
+
+        ImVec2 pMin = ImGui::GetItemRectMin();
+        ImVec2 pMax = ImGui::GetItemRectMax();
+        ImVec2 iconCenter(pMin.x + 20.0f, (pMin.y + pMax.y) * 0.5f);
+
+        ImU32 iconColor = isSelected ? IM_COL32(130, 225, 255, 255) : IM_COL32(200, 205, 220, 230);
+        drawPrimitiveIcon(drawList, i, iconCenter, 10.0f, iconColor);
+
+        if (isSelected) {
+            ImGui::PopStyleColor(3);
+        }
     }
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // Parámetros dinámicos según la primitiva seleccionada
+    static float cubeSize = 1.0f;
+    static float pyrBase = 1.0f, pyrHeight = 1.0f;
+    static float sphereRadius = 1.0f;
+    static int sphereSectors = 32, sphereStacks = 16;
+    static float cylRadius = 1.0f, cylHeight = 1.0f;
+    static int cylSectors = 32;
+
+    if (currentType == 0) { // Cubo
+        ImGui::DragFloat("Arista", &cubeSize, 0.05f, 0.1f, 20.0f);
+    } else if (currentType == 1) { // Pirámide
+        ImGui::DragFloat("Base", &pyrBase, 0.05f, 0.1f, 20.0f);
+        ImGui::DragFloat("Altura", &pyrHeight, 0.05f, 0.1f, 20.0f);
+    } else if (currentType == 2) { // Esfera
+        ImGui::DragFloat("Radio", &sphereRadius, 0.05f, 0.1f, 20.0f);
+        ImGui::SliderInt("Sectores", &sphereSectors, 3, 64);
+        ImGui::SliderInt("Anillos (Stacks)", &sphereStacks, 2, 32);
+    } else if (currentType == 3) { // Cilindro
+        ImGui::DragFloat("Radio", &cylRadius, 0.05f, 0.1f, 20.0f);
+        ImGui::DragFloat("Altura", &cylHeight, 0.05f, 0.1f, 20.0f);
+        ImGui::SliderInt("Sectores", &cylSectors, 3, 64);
+    }
+
+    ImGui::Spacing();
+
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.50f, 0.35f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.26f, 0.62f, 0.42f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.16f, 0.40f, 0.28f, 1.0f));
+    if (ImGui::Button("Instanciar en Escena", ImVec2(-1, 36))) {
+        std::shared_ptr<Model> newModel = nullptr;
+        std::string name;
+
+        if (currentType == 0) {
+            newModel = Primitives::createCube(cubeSize);
+            name = "Cubo Procedimental";
+        } else if (currentType == 1) {
+            newModel = Primitives::createPyramid(pyrBase, pyrHeight);
+            name = "Piramide Procedimental";
+        } else if (currentType == 2) {
+            newModel = Primitives::createSphere(sphereRadius, sphereSectors, sphereStacks);
+            name = "Esfera Procedimental";
+        } else if (currentType == 3) {
+            newModel = Primitives::createCylinder(cylRadius, cylHeight, cylSectors);
+            name = "Cilindro Procedimental";
+        }
+
+        if (newModel) {
+            auto newObj = scene.addObject(name, newModel);
+            m_selectedObjectId = newObj->id;
+            scene.selectObject(newObj->id);
+            m_selectedSubMeshIndex = -1;
+            m_selectedTriangleIndex = -1;
+        }
+    }
+    ImGui::PopStyleColor(3);
+}
+
+void EditorUI::renderModelImporterPanel(Scene& scene) {
+    (void)scene;
+    ImGui::Text("Importar Modelo 3D (.obj / .mtl):");
+    ImGui::Spacing();
+    ImGui::TextDisabled("Carga geometrias Wavefront .obj con materiales .mtl complementarios.");
+    ImGui::Spacing();
+
+    // Botón principal para abrir la ventana modal flotante
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.38f, 0.62f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.24f, 0.48f, 0.78f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.14f, 0.30f, 0.50f, 1.0f));
+
+    if (ImGui::Button("Explorar y Cargar Modelo...", ImVec2(-1, 38))) {
+        refreshAvailableModelFiles();
+        m_showLoadModelModal = true;
+    }
+    ImGui::PopStyleColor(3);
+
+    // Mensaje de estado de la última importación
+    if (!m_modelImportStatus.empty()) {
+        ImGui::Spacing();
+        if (m_modelImportStatusIsError) {
+            ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.35f, 1.0f), "%s", m_modelImportStatus.c_str());
+        } else {
+            ImGui::TextColored(ImVec4(0.35f, 1.0f, 0.45f, 1.0f), "%s", m_modelImportStatus.c_str());
+        }
+    }
+
+    ImGui::TextDisabled("* Propiedades .mtl (Kd) cargadas de forma automatica.");
+    ImGui::TextDisabled("* Normales promedio calculadas si faltan.");
+    ImGui::TextDisabled("* Normalizado a [-1, 1] y centrado en origen.");
 }
 
 void EditorUI::renderLoadModelModal(Scene& scene) {
