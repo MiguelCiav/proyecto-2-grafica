@@ -646,18 +646,82 @@ void EditorUI::renderSceneHierarchyPanel(Scene& scene) {
         }
     }
 
-    ImGui::BeginChild("ListaEntidades", ImVec2(0, 150), true);
+    ImGui::BeginChild("ListaEntidades", ImVec2(0, 180), true);
     for (const auto& obj : objects) {
         if (!obj) continue;
 
         bool isSelected = (obj->id == m_selectedObjectId);
-        std::string label = obj->name + " (ID: " + std::to_string(obj->id) + ")";
+        const std::vector<SubMesh>* subMeshes = obj->model ? &obj->model->getSubMeshes() : nullptr;
+        size_t subMeshCount = subMeshes ? subMeshes->size() : 0;
 
-        if (ImGui::Selectable(label.c_str(), isSelected)) {
+        ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow 
+                                     | ImGuiTreeNodeFlags_OpenOnDoubleClick 
+                                     | ImGuiTreeNodeFlags_SpanAvailWidth
+                                     | ImGuiTreeNodeFlags_DefaultOpen;
+
+        if (isSelected && m_selectedSubMeshIndex < 0) {
+            nodeFlags |= ImGuiTreeNodeFlags_Selected;
+        }
+
+        if (subMeshCount == 0) {
+            nodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+        }
+
+        // Si este objeto tiene un submallado seleccionado, asegurar que esté expandido
+        if (isSelected && m_selectedSubMeshIndex >= 0) {
+            ImGui::SetNextItemOpen(true, ImGuiCond_Appearing);
+        }
+
+        std::string nodeLabel = obj->name + " (ID: " + std::to_string(obj->id) + ")";
+        if (subMeshCount > 0) {
+            nodeLabel += " [" + std::to_string(subMeshCount) + "]";
+        }
+
+        bool nodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)obj->id, nodeFlags, "%s", nodeLabel.c_str());
+
+        // Al hacer clic en el encabezado de la entidad (selección Global de la entidad)
+        if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
             m_selectedObjectId = obj->id;
             scene.selectedObjectID = obj->id;
             m_selectedSubMeshIndex = -1;
             m_selectedTriangleIndex = -1;
+            m_selectionMode = SelectionMode::Global;
+        }
+
+        // Lista interna de sub-mallados para cada entidad
+        if (nodeOpen && subMeshCount > 0 && subMeshes) {
+            for (size_t s = 0; s < subMeshCount; ++s) {
+                const auto& sm = (*subMeshes)[s];
+                bool isSubSelected = (isSelected && m_selectedSubMeshIndex == static_cast<int>(s));
+
+                ImGui::PushID(static_cast<int>(s));
+
+                // Muestra de color difuso (Kd) del sub-mallado
+                const auto& kd = sm.diffuseColor;
+                ImVec4 swatchCol(kd.r, kd.g, kd.b, 1.0f);
+                if (ImGui::ColorButton("##kd_swatch", swatchCol,
+                                       ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoDragDrop,
+                                       ImVec2(12, 12))) {
+                    m_selectedObjectId = obj->id;
+                    scene.selectedObjectID = obj->id;
+                    m_selectedSubMeshIndex = static_cast<int>(s);
+                    m_selectedTriangleIndex = -1;
+                    m_selectionMode = SelectionMode::Local;
+                }
+                ImGui::SameLine();
+
+                std::string smLabel = std::to_string(s) + ": " + sm.name;
+                if (ImGui::Selectable(smLabel.c_str(), isSubSelected)) {
+                    m_selectedObjectId = obj->id;
+                    scene.selectedObjectID = obj->id;
+                    m_selectedSubMeshIndex = static_cast<int>(s);
+                    m_selectedTriangleIndex = -1;
+                    m_selectionMode = SelectionMode::Local;
+                }
+
+                ImGui::PopID();
+            }
+            ImGui::TreePop();
         }
     }
     ImGui::EndChild();
