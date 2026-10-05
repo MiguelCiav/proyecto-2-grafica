@@ -33,6 +33,7 @@ public:
     // flipY = true convierte automáticamente de coordenadas GLFW (origen arriba-izquierda)
     // a coordenadas OpenGL (origen abajo-izquierda).
     unsigned int readPixel(int x, int y, bool flipY = true) const;
+    unsigned int readPixelID(int x, int y, bool flipY = true) const { return readPixel(x, y, flipY); }
 
     // Lectura de los componentes RGBA brutos del píxel
     glm::uvec4 readRawPixel(int x, int y, bool flipY = true) const;
