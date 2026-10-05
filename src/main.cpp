@@ -11,6 +11,7 @@
 #include "scene/Scene.h"
 #include "ui/EditorUI.h"
 #include "graphics/Framebuffer.h"
+#include "graphics/Primitives.h"
 #include <imgui.h>
 
 #include <iostream>
@@ -103,58 +104,25 @@ int main() {
     Framebuffer pickingFBO(SCR_WIDTH, SCR_HEIGHT);
     g_pickingFBO = &pickingFBO;
 
-    // 6. Creación de geometría de prueba: Cubo 3D con normales y UVs (Dev B - Mesh)
-    std::vector<Vertex> cubeVertices = {
-        // Cara frontal (Z+)
-        { {-0.5f, -0.5f,  0.5f}, {0.0f, 0.0f,  1.0f}, {0.0f, 0.0f} },
-        { { 0.5f, -0.5f,  0.5f}, {0.0f, 0.0f,  1.0f}, {1.0f, 0.0f} },
-        { { 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f,  1.0f}, {1.0f, 1.0f} },
-        { {-0.5f,  0.5f,  0.5f}, {0.0f, 0.0f,  1.0f}, {0.0f, 1.0f} },
-
-        // Cara trasera (Z-)
-        { { 0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f} },
-        { {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f} },
-        { {-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f} },
-        { { 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f} },
-
-        // Cara superior (Y+)
-        { {-0.5f,  0.5f,  0.5f}, {0.0f,  1.0f, 0.0f}, {0.0f, 0.0f} },
-        { { 0.5f,  0.5f,  0.5f}, {0.0f,  1.0f, 0.0f}, {1.0f, 0.0f} },
-        { { 0.5f,  0.5f, -0.5f}, {0.0f,  1.0f, 0.0f}, {1.0f, 1.0f} },
-        { {-0.5f,  0.5f, -0.5f}, {0.0f,  1.0f, 0.0f}, {0.0f, 1.0f} },
-
-        // Cara inferior (Y-)
-        { {-0.5f, -0.5f, -0.5f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f} },
-        { { 0.5f, -0.5f, -0.5f}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f} },
-        { { 0.5f, -0.5f,  0.5f}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f} },
-        { {-0.5f, -0.5f,  0.5f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f} },
-
-        // Cara derecha (X+)
-        { { 0.5f, -0.5f,  0.5f}, { 1.0f, 0.0f, 0.0f}, {0.0f, 0.0f} },
-        { { 0.5f, -0.5f, -0.5f}, { 1.0f, 0.0f, 0.0f}, {1.0f, 0.0f} },
-        { { 0.5f,  0.5f, -0.5f}, { 1.0f, 0.0f, 0.0f}, {1.0f, 1.0f} },
-        { { 0.5f,  0.5f,  0.5f}, { 1.0f, 0.0f, 0.0f}, {0.0f, 1.0f} },
-
-        // Cara izquierda (X-)
-        { {-0.5f, -0.5f, -0.5f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f} },
-        { {-0.5f, -0.5f,  0.5f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f} },
-        { {-0.5f,  0.5f,  0.5f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f} },
-        { {-0.5f,  0.5f, -0.5f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f} }
-    };
-
-    std::vector<unsigned int> cubeIndices = {
-         0,  1,  2,   2,  3,  0, // Frontal
-         4,  5,  6,   6,  7,  4, // Trasera
-         8,  9, 10,  10, 11,  8, // Superior
-        12, 13, 14,  14, 15, 12, // Inferior
-        16, 17, 18,  18, 19, 16, // Derecha
-        20, 21, 22,  22, 23, 20  // Izquierda
-    };
-
+    // 6. Configuración de la Escena y carga de entidades iniciales (INT-02)
     Scene scene;
+
+    // A. Modelo OBJ cargado desde disco mediante TinyObjLoader
     auto cubeModel = std::make_shared<Model>("assets/models/cube.obj");
-    auto cubeObj = scene.addObject("Cubo", cubeModel);
+    auto cubeObj = scene.addObject("Cubo OBJ", cubeModel);
+    cubeObj->transform.position = glm::vec3(-2.2f, 0.0f, 0.0f);
     cubeObj->color = glm::vec4(0.2f, 0.7f, 0.95f, 1.0f);
+
+    // B. Primitivas matemáticas procedimentales (Dev A)
+    auto sphereModel = Primitives::createSphere(0.85f, 32, 16);
+    auto sphereObj = scene.addObject("Esfera Procedimental", sphereModel);
+    sphereObj->transform.position = glm::vec3(0.0f, 0.0f, 0.0f);
+    sphereObj->color = glm::vec4(0.95f, 0.45f, 0.2f, 1.0f);
+
+    auto cylinderModel = Primitives::createCylinder(0.6f, 1.6f, 32);
+    auto cylinderObj = scene.addObject("Cilindro Procedimental", cylinderModel);
+    cylinderObj->transform.position = glm::vec3(2.2f, 0.0f, 0.0f);
+    cylinderObj->color = glm::vec4(0.3f, 0.85f, 0.35f, 1.0f);
 
     // 7. Bucle Principal de Renderizado
     while (!glfwWindowShouldClose(window)) {
@@ -196,13 +164,15 @@ int main() {
                 glDisable(GL_DEPTH_TEST);
             }
 
-            // Aplicar selección en EditorUI según el modo activo
+            // Aplicar selección en EditorUI y Scene según el modo activo
             if (editorUI.getSelectionMode() == SelectionMode::Global) {
+                scene.selectedObjectID = pickedID;
                 editorUI.setSelectedObjectId(pickedID);
                 editorUI.setSelectedSubMeshIndex(-1);
                 editorUI.setSelectedTriangleIndex(-1);
             } else if (editorUI.getSelectionMode() == SelectionMode::Local) {
                 if (pickedID == 0) {
+                    scene.selectedObjectID = 0;
                     editorUI.setSelectedObjectId(0);
                     editorUI.setSelectedSubMeshIndex(-1);
                     editorUI.setSelectedTriangleIndex(-1);
@@ -210,22 +180,26 @@ int main() {
                     unsigned int objId = 0;
                     int subIdx = -1;
                     Framebuffer::decodeLocalID(pickedID, objId, subIdx);
+                    scene.selectedObjectID = objId;
                     editorUI.setSelectedObjectId(objId);
                     editorUI.setSelectedSubMeshIndex(subIdx);
                     editorUI.setSelectedTriangleIndex(-1);
                 }
             } else if (editorUI.getSelectionMode() == SelectionMode::Triangle) {
                 if (pickedID == 0) {
+                    scene.selectedObjectID = 0;
                     editorUI.setSelectedObjectId(0);
                     editorUI.setSelectedSubMeshIndex(-1);
                     editorUI.setSelectedTriangleIndex(-1);
                 } else {
                     TriangleHit hit;
                     if (scene.getTriangleHit(pickedID, hit)) {
+                        scene.selectedObjectID = hit.objectId;
                         editorUI.setSelectedObjectId(hit.objectId);
                         editorUI.setSelectedSubMeshIndex(hit.subMeshIndex);
                         editorUI.setSelectedTriangleIndex(hit.localTriangleIndex);
                     } else {
+                        scene.selectedObjectID = 0;
                         editorUI.setSelectedObjectId(0);
                         editorUI.setSelectedSubMeshIndex(-1);
                         editorUI.setSelectedTriangleIndex(-1);
@@ -234,7 +208,10 @@ int main() {
             }
         }
 
-        // Renderizado centralizado de la escena 3D
+        // 7.2 Actualización de lógica temporal de la escena
+        scene.update(deltaTime);
+
+        // 7.3 Renderizado centralizado de la escena 3D
         scene.render(baseShader, view, projection);
 
         // 7.2 Marcado visual del triángulo seleccionado (REQ-A7 - Requisito Parejas)

@@ -95,6 +95,14 @@ public:
     glm::vec4& getBackgroundColor() { return m_backgroundColor; }
     const glm::vec4& getBackgroundColor() const { return m_backgroundColor; }
 
+    // Actualización de estado y lógica temporal de la escena
+    void update(float dt);
+
+    // Entidad seleccionada
+    unsigned int selectedObjectID{0};
+    unsigned int getSelectedObjectId() const { return selectedObjectID; }
+    void setSelectedObjectId(unsigned int id) { selectedObjectID = id; }
+
     // Renderizado de todos los objetos activos
     void render(Shader& shader, const glm::mat4& view, const glm::mat4& projection);
 
