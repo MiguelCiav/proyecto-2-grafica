@@ -255,8 +255,8 @@ Mesh createCylinderMesh(float radius, float height, unsigned int sectors) {
 
     for (unsigned int j = 0; j < sectors; ++j) {
         indices.push_back(topCapCenterIdx);
-        indices.push_back(topCapRimStart + j);
         indices.push_back(topCapRimStart + j + 1);
+        indices.push_back(topCapRimStart + j);
     }
 
     // --- 3. Tapa Inferior (-Y) ---
@@ -278,8 +278,8 @@ Mesh createCylinderMesh(float radius, float height, unsigned int sectors) {
 
     for (unsigned int j = 0; j < sectors; ++j) {
         indices.push_back(botCapCenterIdx);
-        indices.push_back(botCapRimStart + j + 1);
         indices.push_back(botCapRimStart + j);
+        indices.push_back(botCapRimStart + j + 1);
     }
 
     return Mesh(vertices, indices);
