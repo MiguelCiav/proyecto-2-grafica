@@ -42,6 +42,9 @@ public:
     int getSelectedSubMeshIndex() const { return m_selectedSubMeshIndex; }
     void setSelectedSubMeshIndex(int index) { m_selectedSubMeshIndex = index; }
 
+    int getSelectedTriangleIndex() const { return m_selectedTriangleIndex; }
+    void setSelectedTriangleIndex(int index) { m_selectedTriangleIndex = index; }
+
 private:
 
     bool m_initialized{false};
@@ -50,10 +53,11 @@ private:
     bool m_depthTest{true};
     bool m_cullFace{false};
 
-    // Entidad y sub-mallado actualmente seleccionados en el inspector
+    // Entidad, sub-mallado y triángulo actualmente seleccionados en el inspector
     SelectionMode m_selectionMode{SelectionMode::Global};
     unsigned int m_selectedObjectId{0};
     int m_selectedSubMeshIndex{-1};
+    int m_selectedTriangleIndex{-1};
 
     // Paneles modulares de interfaz
     void renderPerformancePanel();

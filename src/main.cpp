@@ -200,22 +200,77 @@ int main() {
             if (editorUI.getSelectionMode() == SelectionMode::Global) {
                 editorUI.setSelectedObjectId(pickedID);
                 editorUI.setSelectedSubMeshIndex(-1);
+                editorUI.setSelectedTriangleIndex(-1);
             } else if (editorUI.getSelectionMode() == SelectionMode::Local) {
                 if (pickedID == 0) {
                     editorUI.setSelectedObjectId(0);
                     editorUI.setSelectedSubMeshIndex(-1);
+                    editorUI.setSelectedTriangleIndex(-1);
                 } else {
                     unsigned int objId = 0;
                     int subIdx = -1;
                     Framebuffer::decodeLocalID(pickedID, objId, subIdx);
                     editorUI.setSelectedObjectId(objId);
                     editorUI.setSelectedSubMeshIndex(subIdx);
+                    editorUI.setSelectedTriangleIndex(-1);
+                }
+            } else if (editorUI.getSelectionMode() == SelectionMode::Triangle) {
+                if (pickedID == 0) {
+                    editorUI.setSelectedObjectId(0);
+                    editorUI.setSelectedSubMeshIndex(-1);
+                    editorUI.setSelectedTriangleIndex(-1);
+                } else {
+                    TriangleHit hit;
+                    if (scene.getTriangleHit(pickedID, hit)) {
+                        editorUI.setSelectedObjectId(hit.objectId);
+                        editorUI.setSelectedSubMeshIndex(hit.subMeshIndex);
+                        editorUI.setSelectedTriangleIndex(hit.localTriangleIndex);
+                    } else {
+                        editorUI.setSelectedObjectId(0);
+                        editorUI.setSelectedSubMeshIndex(-1);
+                        editorUI.setSelectedTriangleIndex(-1);
+                    }
                 }
             }
         }
 
         // Renderizado centralizado de la escena 3D
         scene.render(baseShader, view, projection);
+
+        // 7.2 Marcado visual del triángulo seleccionado (REQ-A7 - Requisito Parejas)
+        if (editorUI.getSelectionMode() == SelectionMode::Triangle && editorUI.getSelectedTriangleIndex() >= 0) {
+            auto selObj = scene.getObject(editorUI.getSelectedObjectId());
+            if (selObj && selObj->visible && selObj->model) {
+                int sIdx = editorUI.getSelectedSubMeshIndex();
+                if (sIdx < 0 && !selObj->model->getSubMeshes().empty()) {
+                    sIdx = 0;
+                }
+                const auto& subMeshes = selObj->model->getSubMeshes();
+                if (sIdx >= 0 && sIdx < static_cast<int>(subMeshes.size())) {
+                    const auto& sm = subMeshes[sIdx];
+                    unsigned int triIdx = static_cast<unsigned int>(editorUI.getSelectedTriangleIndex());
+
+                    baseShader.use();
+                    baseShader.setMat4("model", selObj->getModelMatrix());
+
+                    // 1. Dibujar cara rellena con color ámbar brillante (sin Z-fighting mediante polygon offset)
+                    glEnable(GL_POLYGON_OFFSET_FILL);
+                    glPolygonOffset(-2.0f, -2.0f);
+                    baseShader.setVec4("objectColor", glm::vec4(1.0f, 0.85f, 0.1f, 0.95f));
+                    sm.mesh.drawTriangle(triIdx, DrawMode::Fill);
+                    glDisable(GL_POLYGON_OFFSET_FILL);
+
+                    // 2. Delinear aristas con wireframe destacado en color rojo vivo
+                    glEnable(GL_POLYGON_OFFSET_LINE);
+                    glPolygonOffset(-3.0f, -3.0f);
+                    glLineWidth(3.0f);
+                    baseShader.setVec4("objectColor", glm::vec4(1.0f, 0.2f, 0.2f, 1.0f));
+                    sm.mesh.drawTriangle(triIdx, DrawMode::Wireframe);
+                    glLineWidth(1.0f);
+                    glDisable(GL_POLYGON_OFFSET_LINE);
+                }
+            }
+        }
 
         // Renderizado de la interfaz gráfica completa con pestañas e inspector
         editorUI.beginFrame();

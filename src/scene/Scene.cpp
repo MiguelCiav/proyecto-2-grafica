@@ -92,27 +92,70 @@ void Scene::renderForPicking(Shader& shader, const glm::mat4& view, const glm::m
     shader.setMat4("projection", projection);
     shader.setMat4("view", view);
 
-    for (const auto& obj : m_objects) {
-        if (!obj || !obj->visible || !obj->model) {
-            continue;
-        }
+    if (mode == SelectionMode::Triangle) {
+        m_triangleLookup.clear();
+        shader.setInt("pickingMode", 1); // Modo Triángulo con gl_PrimitiveID
 
-        shader.setMat4("model", obj->getModelMatrix());
+        int currentBaseID = 0;
+        for (const auto& obj : m_objects) {
+            if (!obj || !obj->visible || !obj->model) {
+                continue;
+            }
 
-        if (mode == SelectionMode::Global) {
-            // En modo Global, todo el modelo se dibuja con el ID del objeto raíz
-            glm::vec3 codeColor = Framebuffer::encodeID(obj->id);
-            shader.setVec3("codeColor", codeColor);
-            obj->model->draw(DrawMode::Fill);
-        } else if (mode == SelectionMode::Local) {
-            // En modo Local, cada sub-mallado individual se dibuja con su ID jerárquico diferenciado
+            shader.setMat4("model", obj->getModelMatrix());
             const auto& subMeshes = obj->model->getSubMeshes();
-            for (size_t i = 0; i < subMeshes.size(); ++i) {
-                unsigned int localId = Framebuffer::encodeLocalID(obj->id, static_cast<unsigned int>(i));
-                glm::vec3 codeColor = Framebuffer::encodeID(localId);
+            for (size_t s = 0; s < subMeshes.size(); ++s) {
+                const auto& sm = subMeshes[s];
+                unsigned int triCount = static_cast<unsigned int>(sm.mesh.getTriangleCount());
+                if (triCount == 0) continue;
+
+                shader.setInt("baseTriangleID", currentBaseID);
+
+                for (unsigned int t = 0; t < triCount; ++t) {
+                    m_triangleLookup.push_back(TriangleHit{
+                        obj->id,
+                        static_cast<unsigned int>(s),
+                        t
+                    });
+                }
+
+                currentBaseID += static_cast<int>(triCount);
+                sm.mesh.draw(DrawMode::Fill);
+            }
+        }
+    } else {
+        shader.setInt("pickingMode", 0); // Modo Global o Local con codeColor
+
+        for (const auto& obj : m_objects) {
+            if (!obj || !obj->visible || !obj->model) {
+                continue;
+            }
+
+            shader.setMat4("model", obj->getModelMatrix());
+
+            if (mode == SelectionMode::Global) {
+                // En modo Global, todo el modelo se dibuja con el ID del objeto raíz
+                glm::vec3 codeColor = Framebuffer::encodeID(obj->id);
                 shader.setVec3("codeColor", codeColor);
-                subMeshes[i].mesh.draw(DrawMode::Fill);
+                obj->model->draw(DrawMode::Fill);
+            } else if (mode == SelectionMode::Local) {
+                // En modo Local, cada sub-mallado individual se dibuja con su ID jerárquico diferenciado
+                const auto& subMeshes = obj->model->getSubMeshes();
+                for (size_t i = 0; i < subMeshes.size(); ++i) {
+                    unsigned int localId = Framebuffer::encodeLocalID(obj->id, static_cast<unsigned int>(i));
+                    glm::vec3 codeColor = Framebuffer::encodeID(localId);
+                    shader.setVec3("codeColor", codeColor);
+                    subMeshes[i].mesh.draw(DrawMode::Fill);
+                }
             }
         }
     }
+}
+
+bool Scene::getTriangleHit(unsigned int globalTriangleId, TriangleHit& outHit) const {
+    if (globalTriangleId == 0 || globalTriangleId > m_triangleLookup.size()) {
+        return false;
+    }
+    outHit = m_triangleLookup[globalTriangleId - 1];
+    return true;
 }
