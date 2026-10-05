@@ -249,7 +249,7 @@ Mesh createCylinderMesh(float radius, float height, unsigned int sectors) {
         vertices.push_back(Vertex{
             glm::vec3(radius * c, hh, radius * s),
             topNormal,
-            glm::vec2(0.5f .5f * c, 0.5f .5f * s)
+            glm::vec2(0.5f + 0.5f * c, 0.5f + 0.5f * s)
         });
     }
 
@@ -272,7 +272,7 @@ Mesh createCylinderMesh(float radius, float height, unsigned int sectors) {
         vertices.push_back(Vertex{
             glm::vec3(radius * c, -hh, radius * s),
             botNormal,
-            glm::vec2(0.5f .5f * c, 0.5f .5f * s)
+            glm::vec2(0.5f + 0.5f * c, 0.5f + 0.5f * s)
         });
     }
 

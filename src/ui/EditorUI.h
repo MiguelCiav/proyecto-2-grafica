@@ -75,6 +75,7 @@ private:
     void renderSaveSceneModal(Scene& scene);
     void renderSceneHierarchyPanel(Scene& scene);
     void renderPrimitivesCreatorPanel(Scene& scene);
+    void renderModelImporterPanel(Scene& scene);
     void renderPropertiesPanel(Scene& scene);
 
     // Persistencia de escena (.scene)
@@ -89,4 +90,13 @@ private:
     bool m_showSaveModal{false};
 
     void refreshAvailableSceneFiles();
+
+    // Importación de modelos 3D (.obj / .mtl)
+    char m_modelFilePathBuffer[256]{"assets/models/robot.obj"};
+    std::string m_modelImportStatus;
+    bool m_modelImportStatusIsError{false};
+    std::vector<std::string> m_availableModelFiles;
+    int m_selectedModelIndex{0};
+
+    void refreshAvailableModelFiles();
 };

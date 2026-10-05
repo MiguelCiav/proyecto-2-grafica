@@ -97,8 +97,9 @@ void EditorUI::init(GLFWwindow* window) {
     setDepthTest(m_depthTest);
     setCullFace(m_cullFace);
 
-    // 5. Escanear escenas disponibles en assets/scenes
+    // 5. Escanear escenas y modelos disponibles en assets/
     refreshAvailableSceneFiles();
+    refreshAvailableModelFiles();
 
     m_initialized = true;
 }
@@ -168,6 +169,8 @@ void EditorUI::render(Scene& scene) {
             renderSceneHierarchyPanel(scene);
             ImGui::Separator();
             renderPrimitivesCreatorPanel(scene);
+            ImGui::Separator();
+            renderModelImporterPanel(scene);
             ImGui::Separator();
             renderPropertiesPanel(scene);
             ImGui::EndTabItem();
@@ -264,6 +267,39 @@ void EditorUI::refreshAvailableSceneFiles() {
 
     if (m_selectedSceneIndex < 0 || m_selectedSceneIndex >= static_cast<int>(m_availableSceneFiles.size())) {
         m_selectedSceneIndex = 0;
+    }
+}
+
+void EditorUI::refreshAvailableModelFiles() {
+    m_availableModelFiles.clear();
+    const std::string modelsDir = "assets/models";
+    try {
+        if (!std::filesystem::exists(modelsDir)) {
+            std::filesystem::create_directories(modelsDir);
+        }
+        for (const auto& entry : std::filesystem::directory_iterator(modelsDir)) {
+            if (entry.is_regular_file() && entry.path().extension() == ".obj") {
+                m_availableModelFiles.push_back(entry.path().filename().string());
+            }
+        }
+        std::sort(m_availableModelFiles.begin(), m_availableModelFiles.end());
+    } catch (const std::exception& e) {
+        std::cerr << "[EditorUI WARN]: No se pudo listar assets/models: " << e.what() << std::endl;
+    }
+
+    if (m_availableModelFiles.empty()) {
+        m_availableModelFiles.push_back("robot.obj");
+    }
+
+    if (m_selectedModelIndex < 0 || m_selectedModelIndex >= static_cast<int>(m_availableModelFiles.size())) {
+        m_selectedModelIndex = 0;
+    }
+
+    // Actualizar buffer con el primer modelo encontrado
+    if (!m_availableModelFiles.empty()) {
+        std::string defaultPath = "assets/models/" + m_availableModelFiles[m_selectedModelIndex];
+        std::strncpy(m_modelFilePathBuffer, defaultPath.c_str(), sizeof(m_modelFilePathBuffer) - 1);
+        m_modelFilePathBuffer[sizeof(m_modelFilePathBuffer) - 1] = '\0';
     }
 }
 
@@ -658,6 +694,78 @@ void EditorUI::renderPrimitivesCreatorPanel(Scene& scene) {
                 m_selectedTriangleIndex = -1;
             }
         }
+    }
+}
+
+void EditorUI::renderModelImporterPanel(Scene& scene) {
+    if (ImGui::CollapsingHeader("Importar Modelo 3D (.obj / .mtl)")) {
+        ImGui::TextDisabled("Carga geometrias .obj con materiales .mtl complementarios.");
+        ImGui::Spacing();
+
+        // Modelos disponibles en assets/models/
+        if (!m_availableModelFiles.empty()) {
+            std::vector<const char*> modelNames;
+            for (const auto& f : m_availableModelFiles) {
+                modelNames.push_back(f.c_str());
+            }
+
+            if (ImGui::Combo("Modelo en assets/##Combo", &m_selectedModelIndex, modelNames.data(), static_cast<int>(modelNames.size()))) {
+                std::string fullPath = "assets/models/" + m_availableModelFiles[m_selectedModelIndex];
+                std::strncpy(m_modelFilePathBuffer, fullPath.c_str(), sizeof(m_modelFilePathBuffer) - 1);
+                m_modelFilePathBuffer[sizeof(m_modelFilePathBuffer) - 1] = '\0';
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Refrescar##Models")) {
+                refreshAvailableModelFiles();
+            }
+        }
+
+        // Entrada de ruta editable
+        ImGui::InputText("Ruta del archivo##ModelPath", m_modelFilePathBuffer, sizeof(m_modelFilePathBuffer));
+
+        ImGui::Spacing();
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.22f, 0.45f, 0.65f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.28f, 0.55f, 0.78f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.16f, 0.35f, 0.52f, 1.0f));
+
+        if (ImGui::Button("Cargar e Instanciar en Escena", ImVec2(-1, 32))) {
+            std::string pathStr(m_modelFilePathBuffer);
+            auto newModel = std::make_shared<Model>(pathStr);
+
+            if (newModel && newModel->isLoaded()) {
+                std::filesystem::path p(pathStr);
+                std::string entityName = p.stem().string();
+                if (entityName.empty()) entityName = "Modelo 3D";
+
+                auto newObj = scene.addObject(entityName, newModel);
+                m_selectedObjectId = newObj->id;
+                scene.selectedObjectID = newObj->id;
+                m_selectedSubMeshIndex = -1;
+                m_selectedTriangleIndex = -1;
+
+                m_modelImportStatus = "Modelo cargado exitosamente:\n" + pathStr + 
+                                      " (" + std::to_string(newModel->getSubMeshes().size()) + " sub-mallados)";
+                m_modelImportStatusIsError = false;
+            } else {
+                m_modelImportStatus = "Error: no se pudo cargar el archivo OBJ en:\n" + pathStr;
+                m_modelImportStatusIsError = true;
+            }
+        }
+        ImGui::PopStyleColor(3);
+
+        if (!m_modelImportStatus.empty()) {
+            ImGui::Spacing();
+            if (m_modelImportStatusIsError) {
+                ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.35f, 1.0f), "%s", m_modelImportStatus.c_str());
+            } else {
+                ImGui::TextColored(ImVec4(0.35f, 1.0f, 0.45f, 1.0f), "%s", m_modelImportStatus.c_str());
+            }
+        }
+
+        ImGui::Spacing();
+        ImGui::TextDisabled("* Propiedades .mtl (Kd) cargadas de forma automatica.");
+        ImGui::TextDisabled("* Normales promedio calculadas si estan ausentes.");
+        ImGui::TextDisabled("* Normalizado a [-1, 1] y centrado en origen.");
     }
 }
 
