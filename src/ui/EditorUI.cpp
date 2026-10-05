@@ -223,6 +223,22 @@ void EditorUI::renderEnvironmentPanel(Scene& scene) {
 }
 
 void EditorUI::renderSceneHierarchyPanel(Scene& scene) {
+    // Selector interactivo de Modo de Selección por Color Picking
+    ImGui::Text("Modo de Seleccion:");
+    int modeInt = static_cast<int>(m_selectionMode);
+    if (ImGui::RadioButton("Global", modeInt == 0)) {
+        m_selectionMode = SelectionMode::Global;
+    }
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Local", modeInt == 1)) {
+        m_selectionMode = SelectionMode::Local;
+    }
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Triangulo", modeInt == 2)) {
+        m_selectionMode = SelectionMode::Triangle;
+    }
+    ImGui::Spacing();
+
     const auto& objects = scene.getObjects();
     ImGui::Text("Jerarquia de Entidades (%zu):", objects.size());
 
@@ -235,6 +251,7 @@ void EditorUI::renderSceneHierarchyPanel(Scene& scene) {
 
         if (ImGui::Selectable(label.c_str(), isSelected)) {
             m_selectedObjectId = obj->id;
+            m_selectedSubMeshIndex = -1;
         }
     }
     ImGui::EndChild();
@@ -323,6 +340,22 @@ void EditorUI::renderPropertiesPanel(Scene& scene) {
     ImGui::Text("Material:");
     ImGui::ColorEdit4("Color Difuso", glm::value_ptr(obj->color));
 
+    // Si estamos en Modo Local, mostramos e interactuamos con el Sub-mallado específico
+    if (m_selectionMode == SelectionMode::Local) {
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::TextColored(ImVec4(0.3f, 0.8f, 1.0f, 1.0f), "Seleccion Local (Sub-mallado):");
+        if (obj->model && m_selectedSubMeshIndex >= 0 &&
+            m_selectedSubMeshIndex < static_cast<int>(obj->model->getSubMeshes().size())) {
+            auto& subMesh = obj->model->getSubMeshes()[m_selectedSubMeshIndex];
+            ImGui::BulletText("Nombre: %s", subMesh.name.c_str());
+            ImGui::BulletText("Indice: %d / %zu", m_selectedSubMeshIndex, obj->model->getSubMeshes().size());
+            ImGui::ColorEdit4("Color Kd Sub-mallado", glm::value_ptr(subMesh.diffuseColor));
+        } else {
+            ImGui::TextDisabled("Haz clic en un sub-mallado en la escena para seleccionarlo.");
+        }
+    }
+
     // Modos de Visualización
     ImGui::Spacing();
     ImGui::Text("Modos de Visualizacion:");
@@ -340,6 +373,7 @@ void EditorUI::renderPropertiesPanel(Scene& scene) {
     if (ImGui::Button("Eliminar Entidad", ImVec2(-1, 0))) {
         scene.removeObject(m_selectedObjectId);
         m_selectedObjectId = 0;
+        m_selectedSubMeshIndex = -1;
     }
     ImGui::PopStyleColor(3);
 }

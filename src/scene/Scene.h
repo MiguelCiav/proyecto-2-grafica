@@ -54,6 +54,15 @@ struct DirectionalLight {
 };
 
 /**
+ * @brief Modos de especificidad para selección interactiva por Color Picking.
+ */
+enum class SelectionMode {
+    Global,     // Objeto completo (nodo raíz)
+    Local,      // Sub-mallado individual (Mesh)
+    Triangle    // Triángulo específico (Requisito Parejas)
+};
+
+/**
  * @brief Gestor principal de la escena 3D.
  */
 class Scene {
@@ -79,6 +88,9 @@ public:
 
     // Renderizado de todos los objetos activos
     void render(Shader& shader, const glm::mat4& view, const glm::mat4& projection);
+
+    // Renderizado para selección por color (Color Picking en FBO)
+    void renderForPicking(Shader& shader, const glm::mat4& view, const glm::mat4& projection, SelectionMode mode);
 
 private:
     std::vector<std::shared_ptr<SceneObject>> m_objects;

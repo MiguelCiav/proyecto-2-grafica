@@ -10,6 +10,8 @@
 #include "graphics/Model.h"
 #include "scene/Scene.h"
 #include "ui/EditorUI.h"
+#include "graphics/Framebuffer.h"
+#include <imgui.h>
 
 #include <iostream>
 #include <vector>
@@ -17,6 +19,12 @@
 // Configuración inicial de la ventana
 unsigned int SCR_WIDTH = 1280;
 unsigned int SCR_HEIGHT = 720;
+
+// Puntero global para redimensionamiento del FBO de picking y estado de selección
+Framebuffer* g_pickingFBO = nullptr;
+bool pendingPick = false;
+int pickX = 0;
+int pickY = 0;
 
 // Instancia global de la cámara (Dev A)
 Camera camera(glm::vec3(0.0f, 1.0f, 4.0f));
@@ -89,6 +97,11 @@ int main() {
 
     // 5. Carga y compilación de shaders base provistos por la cátedra (Dev A)
     Shader baseShader("assets/shaders/base.vert", "assets/shaders/base.frag");
+    Shader pickingShader("assets/shaders/picking.vert", "assets/shaders/picking.frag");
+
+    // Framebuffer fuera de pantalla para Color Picking (Dev A)
+    Framebuffer pickingFBO(SCR_WIDTH, SCR_HEIGHT);
+    g_pickingFBO = &pickingFBO;
 
     // 6. Creación de geometría de prueba: Cubo 3D con normales y UVs (Dev B - Mesh)
     std::vector<Vertex> cubeVertices = {
@@ -162,6 +175,45 @@ int main() {
         glm::mat4 projection = camera.getProjectionMatrix(aspect);
         glm::mat4 view = camera.getViewMatrix();
 
+        // 7.1 Pasada optimizada de Color Picking (Dev A: solo se ejecuta ante clics en el viewport 3D)
+        if (pendingPick) {
+            pendingPick = false;
+
+            pickingFBO.bind();
+            glDisable(GL_BLEND);
+            glEnable(GL_DEPTH_TEST);
+            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            scene.renderForPicking(pickingShader, view, projection, editorUI.getSelectionMode());
+
+            unsigned int pickedID = pickingFBO.readPixelID(pickX, pickY);
+            pickingFBO.unbind();
+
+            // Restaurar estados normales de rasterizado
+            glEnable(GL_BLEND);
+            if (!editorUI.isDepthTestEnabled()) {
+                glDisable(GL_DEPTH_TEST);
+            }
+
+            // Aplicar selección en EditorUI según el modo activo
+            if (editorUI.getSelectionMode() == SelectionMode::Global) {
+                editorUI.setSelectedObjectId(pickedID);
+                editorUI.setSelectedSubMeshIndex(-1);
+            } else if (editorUI.getSelectionMode() == SelectionMode::Local) {
+                if (pickedID == 0) {
+                    editorUI.setSelectedObjectId(0);
+                    editorUI.setSelectedSubMeshIndex(-1);
+                } else {
+                    unsigned int objId = 0;
+                    int subIdx = -1;
+                    Framebuffer::decodeLocalID(pickedID, objId, subIdx);
+                    editorUI.setSelectedObjectId(objId);
+                    editorUI.setSelectedSubMeshIndex(subIdx);
+                }
+            }
+        }
+
         // Renderizado centralizado de la escena 3D
         scene.render(baseShader, view, projection);
 
@@ -176,6 +228,7 @@ int main() {
     }
 
     // 8. Liberación ordenada de recursos
+    g_pickingFBO = nullptr;
     scene.clear();
     cubeModel.reset();
     editorUI.shutdown();
@@ -210,6 +263,9 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     SCR_WIDTH = width;
     SCR_HEIGHT = height;
     glViewport(0, 0, width, height);
+    if (g_pickingFBO) {
+        g_pickingFBO->rescale(width, height);
+    }
 }
 
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
@@ -245,6 +301,16 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
             // Liberar el cursor para usar la interfaz Dear ImGui
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             firstMouse = true;
+        }
+    } else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        // Optimización: Solo registrar picking si el clic se realiza sobre el viewport 3D (no sobre ImGui)
+        ImGuiIO& io = ImGui::GetIO();
+        if (!io.WantCaptureMouse) {
+            double xpos, ypos;
+            glfwGetCursorPos(window, &xpos, &ypos);
+            pendingPick = true;
+            pickX = static_cast<int>(xpos);
+            pickY = static_cast<int>(ypos);
         }
     }
 }

@@ -1,5 +1,6 @@
 #include "scene/Scene.h"
 #include "core/Shader.h"
+#include "graphics/Framebuffer.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
 
@@ -83,5 +84,35 @@ void Scene::render(Shader& shader, const glm::mat4& view, const glm::mat4& proje
         }
 
         obj->model->draw(mode);
+    }
+}
+
+void Scene::renderForPicking(Shader& shader, const glm::mat4& view, const glm::mat4& projection, SelectionMode mode) {
+    shader.use();
+    shader.setMat4("projection", projection);
+    shader.setMat4("view", view);
+
+    for (const auto& obj : m_objects) {
+        if (!obj || !obj->visible || !obj->model) {
+            continue;
+        }
+
+        shader.setMat4("model", obj->getModelMatrix());
+
+        if (mode == SelectionMode::Global) {
+            // En modo Global, todo el modelo se dibuja con el ID del objeto raíz
+            glm::vec3 codeColor = Framebuffer::encodeID(obj->id);
+            shader.setVec3("codeColor", codeColor);
+            obj->model->draw(DrawMode::Fill);
+        } else if (mode == SelectionMode::Local) {
+            // En modo Local, cada sub-mallado individual se dibuja con su ID jerárquico diferenciado
+            const auto& subMeshes = obj->model->getSubMeshes();
+            for (size_t i = 0; i < subMeshes.size(); ++i) {
+                unsigned int localId = Framebuffer::encodeLocalID(obj->id, static_cast<unsigned int>(i));
+                glm::vec3 codeColor = Framebuffer::encodeID(localId);
+                shader.setVec3("codeColor", codeColor);
+                subMeshes[i].mesh.draw(DrawMode::Fill);
+            }
+        }
     }
 }

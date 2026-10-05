@@ -42,6 +42,10 @@ public:
     static glm::vec3 encodeID(unsigned int id);
     static unsigned int decodeID(unsigned char r, unsigned char g, unsigned char b);
 
+    // Codificación jerárquica para Selección en Modo Local (objeto + sub-mallado)
+    static unsigned int encodeLocalID(unsigned int objectId, unsigned int subMeshIndex);
+    static void decodeLocalID(unsigned int id, unsigned int& outObjectId, int& outSubMeshIndex);
+
     // Consultas
     unsigned int getFBO() const { return m_fbo; }
     unsigned int getTexture() const { return m_texture; }
