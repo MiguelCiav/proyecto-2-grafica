@@ -170,3 +170,15 @@ unsigned int Framebuffer::decodeID(unsigned char r, unsigned char g, unsigned ch
           (static_cast<unsigned int>(g) << 8) |
           (static_cast<unsigned int>(b) << 16);
 }
+
+unsigned int Framebuffer::encodeLocalID(unsigned int objectId, unsigned int subMeshIndex) {
+    // 16 bits superiores: objectId (rango 1 a 65535)
+    // 8 bits inferiores: subMeshIndex + 1 (rango 1 a 255)
+    return ((objectId & 0xFFFF) << 8) | ((subMeshIndex + 1) & 0xFF);
+}
+
+void Framebuffer::decodeLocalID(unsigned int id, unsigned int& outObjectId, int& outSubMeshIndex) {
+    outObjectId = (id >> 8) & 0xFFFF;
+    unsigned int sub = id & 0xFF;
+    outSubMeshIndex = (sub > 0) ? (static_cast<int>(sub) - 1) : -1;
+}

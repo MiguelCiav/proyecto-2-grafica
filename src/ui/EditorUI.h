@@ -1,9 +1,10 @@
 #pragma once
 
+#include "scene/Scene.h"
+
 // Forward declaration de GLFWwindow para evitar incluir GLFW en cabeceras
 // y prevenir conflictos con el orden estricto de inclusión de GLAD
 struct GLFWwindow;
-class Scene;
 
 /**
  * @brief Gestiona la interfaz gráfica de usuario con Dear ImGui.
@@ -31,9 +32,15 @@ public:
     bool isCullFaceEnabled() const { return m_cullFace; }
     void setCullFace(bool enable);
 
-    // Selección de entidades (base para la integración con Picking en INT-02)
+    // Selección de entidades y modos (Global, Local, Triángulo)
+    SelectionMode getSelectionMode() const { return m_selectionMode; }
+    void setSelectionMode(SelectionMode mode) { m_selectionMode = mode; }
+
     unsigned int getSelectedObjectId() const { return m_selectedObjectId; }
     void setSelectedObjectId(unsigned int id) { m_selectedObjectId = id; }
+
+    int getSelectedSubMeshIndex() const { return m_selectedSubMeshIndex; }
+    void setSelectedSubMeshIndex(int index) { m_selectedSubMeshIndex = index; }
 
 private:
 
@@ -43,8 +50,10 @@ private:
     bool m_depthTest{true};
     bool m_cullFace{false};
 
-    // Entidad actualmente seleccionada en el inspector
+    // Entidad y sub-mallado actualmente seleccionados en el inspector
+    SelectionMode m_selectionMode{SelectionMode::Global};
     unsigned int m_selectedObjectId{0};
+    int m_selectedSubMeshIndex{-1};
 
     // Paneles modulares de interfaz
     void renderPerformancePanel();
