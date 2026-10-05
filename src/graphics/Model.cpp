@@ -64,13 +64,13 @@ std::vector<glm::vec3> Model::computeAverageNormals(const tinyobj::attrib_t& att
 
     for (const auto& s : shapes) {
         for (size_t f = 0; f < s.mesh.indices.size(); f += 3) {
-            int i0 = s.mesh.indices[f + 0].vertex_index;
+            int i0 = s.mesh.indices[f].vertex_index;
             int i1 = s.mesh.indices[f + 1].vertex_index;
             int i2 = s.mesh.indices[f + 2].vertex_index;
             if (i0 < 0 || i1 < 0 || i2 < 0) continue;
-            glm::vec3 v0(attrib.vertices[3 * i0 + 0], attrib.vertices[3 * i0 + 1], attrib.vertices[3 * i0 + 2]);
-            glm::vec3 v1(attrib.vertices[3 * i1 + 0], attrib.vertices[3 * i1 + 1], attrib.vertices[3 * i1 + 2]);
-            glm::vec3 v2(attrib.vertices[3 * i2 + 0], attrib.vertices[3 * i2 + 1], attrib.vertices[3 * i2 + 2]);
+            glm::vec3 v0(attrib.vertices[3 * i0], attrib.vertices[3 * i0 + 1], attrib.vertices[3 * i0 + 2]);
+            glm::vec3 v1(attrib.vertices[3 * i1], attrib.vertices[3 * i1 + 1], attrib.vertices[3 * i1 + 2]);
+            glm::vec3 v2(attrib.vertices[3 * i2], attrib.vertices[3 * i2 + 1], attrib.vertices[3 * i2 + 2]);
             glm::vec3 edge1 = v1 - v0;
             glm::vec3 edge2 = v2 - v0;
             glm::vec3 faceNormal = glm::cross(edge1, edge2);
@@ -153,7 +153,7 @@ bool Model::loadFromFile(const std::string& filepath) {
 
             // Posición (aPos)
             vertex.Position = glm::vec3(
-                attrib.vertices[3 * idx.vertex_index + 0],
+                attrib.vertices[3 * idx.vertex_index],
                 attrib.vertices[3 * idx.vertex_index + 1],
                 attrib.vertices[3 * idx.vertex_index + 2]
             );
@@ -161,7 +161,7 @@ bool Model::loadFromFile(const std::string& filepath) {
             // Normales (si están presentes en el archivo)
             if (idx.normal_index >= 0) {
                 vertex.Normal = glm::vec3(
-                    attrib.normals[3 * idx.normal_index + 0],
+                    attrib.normals[3 * idx.normal_index],
                     attrib.normals[3 * idx.normal_index + 1],
                     attrib.normals[3 * idx.normal_index + 2]
                 );
@@ -177,7 +177,7 @@ bool Model::loadFromFile(const std::string& filepath) {
             // Coordenadas de textura (UV)
             if (idx.texcoord_index >= 0) {
                 vertex.TexCoords = glm::vec2(
-                    attrib.texcoords[2 * idx.texcoord_index + 0],
+                    attrib.texcoords[2 * idx.texcoord_index],
                     attrib.texcoords[2 * idx.texcoord_index + 1]
                 );
             } else {
