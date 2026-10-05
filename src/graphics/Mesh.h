@@ -52,6 +52,9 @@ public:
     // Renderizado de un triángulo individual específico (REQ-A7)
     void drawTriangle(unsigned int triangleIndex, DrawMode mode = DrawMode::Fill) const;
 
+    // Renderizado de líneas de normales vectoriales (REQ-A8)
+    void drawNormals() const;
+
     // Getters de consulta
     unsigned int getVAO() const { return m_VAO; }
     unsigned int getVBO() const { return m_VBO; }
@@ -65,6 +68,11 @@ private:
     unsigned int m_VAO{0};
     unsigned int m_VBO{0};
     unsigned int m_EBO{0};
+
+    // Buffer de líneas para inspección de normales vectoriales
+    unsigned int m_normalsVAO{0};
+    unsigned int m_normalsVBO{0};
+    size_t m_normalsCount{0};
 
     void setupMesh();
     void cleanup();

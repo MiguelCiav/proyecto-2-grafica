@@ -99,6 +99,7 @@ int main(int argc, char* argv[]) {
     // 5. Carga y compilación de shaders base provistos por la cátedra (Dev A)
     Shader baseShader("assets/shaders/base.vert", "assets/shaders/base.frag");
     Shader pickingShader("assets/shaders/picking.vert", "assets/shaders/picking.frag");
+    Shader debugShader("assets/shaders/debug.vert", "assets/shaders/debug.frag");
 
     // Framebuffer fuera de pantalla para Color Picking (Dev A)
     Framebuffer pickingFBO(SCR_WIDTH, SCR_HEIGHT);
@@ -312,6 +313,9 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
+
+        // 7.3 Herramientas de Inspección Geométrica Avanzada (REQ-A8: Normales, Vértices, Bounding Box)
+        scene.renderDebug(debugShader, view, projection, editorUI.getPointSize());
 
         // Renderizado de la interfaz gráfica completa con pestañas e inspector
         editorUI.beginFrame();

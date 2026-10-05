@@ -743,6 +743,11 @@ void EditorUI::renderPropertiesPanel(Scene& scene) {
     ImGui::Checkbox("Visible", &obj->visible);
     ImGui::Checkbox("Alambre (Wireframe)", &obj->showWireframe);
     ImGui::Checkbox("Vertices (Puntos)", &obj->showVertices);
+    if (obj->showVertices) {
+        ImGui::Indent();
+        ImGui::SliderFloat("Tamaño Puntos", &m_pointSize, 2.0f, 20.0f, "%.1f px");
+        ImGui::Unindent();
+    }
     ImGui::Checkbox("Mostrar Normales", &obj->showNormals);
     ImGui::Checkbox("Bounding Box", &obj->showBoundingBox);
 
