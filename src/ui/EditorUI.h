@@ -59,7 +59,13 @@ private:
     void renderPerformancePanel();
     void renderRenderSettingsPanel();
     void renderEnvironmentPanel(Scene& scene);
+    void renderPersistencePanel(Scene& scene);
     void renderSceneHierarchyPanel(Scene& scene);
     void renderPrimitivesCreatorPanel(Scene& scene);
     void renderPropertiesPanel(Scene& scene);
+
+    // Persistencia de escena (.scene)
+    char m_sceneFilePathBuffer[256]{"assets/scenes/default.scene"};
+    std::string m_persistenceStatus;
+    bool m_persistenceStatusIsError{false};
 };

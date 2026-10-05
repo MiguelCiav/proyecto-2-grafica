@@ -9,6 +9,7 @@
 #include "graphics/Mesh.h"
 #include "graphics/Model.h"
 #include "scene/Scene.h"
+#include "scene/SceneSerializer.h"
 #include "ui/EditorUI.h"
 #include "graphics/Framebuffer.h"
 #include <imgui.h>
@@ -43,7 +44,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void processInput(GLFWwindow* window);
 
-int main() {
+int main(int argc, char* argv[]) {
     // 1. Inicialización y configuración de GLFW
     if (!glfwInit()) {
         std::cerr << "[ERROR::GLFW] Falló la inicialización de GLFW." << std::endl;
@@ -155,6 +156,46 @@ int main() {
     auto cubeModel = std::make_shared<Model>("assets/models/cube.obj");
     auto cubeObj = scene.addObject("Cubo", cubeModel);
     cubeObj->color = glm::vec4(0.2f, 0.7f, 0.95f, 1.0f);
+
+    // Modo de prueba automatizada para SceneSerializer
+    for (int i = 1; i < argc; ++i) {
+        if (std::string(argv[i]) == "--test-serializer") {
+            SceneSerializer serializer(scene);
+            std::cout << "[TEST] Probando SceneSerializer::serialize..." << std::endl;
+            if (!serializer.serialize("assets/scenes/test_run.scene")) {
+                std::cerr << "[TEST FAIL] Error al serializar: " << serializer.getLastError() << std::endl;
+                return 1;
+            }
+            std::cout << "[TEST] Probando Scene::clear()..." << std::endl;
+            scene.clear();
+            if (!scene.getObjects().empty()) {
+                std::cerr << "[TEST FAIL] Scene::clear() no vacio la lista de objetos." << std::endl;
+                return 1;
+            }
+            std::cout << "[TEST] Probando SceneSerializer::deserialize..." << std::endl;
+            if (!serializer.deserialize("assets/scenes/test_run.scene")) {
+                std::cerr << "[TEST FAIL] Error al deserializar: " << serializer.getLastError() << std::endl;
+                return 1;
+            }
+            if (scene.getObjects().size() != 1) {
+                std::cerr << "[TEST FAIL] Se esperaba 1 objeto y hay " << scene.getObjects().size() << std::endl;
+                return 1;
+            }
+            std::cout << "[TEST] Probando deserialize en assets/scenes/demo.scene..." << std::endl;
+            if (!serializer.deserialize("assets/scenes/demo.scene")) {
+                std::cerr << "[TEST FAIL] Error al deserializar demo.scene: " << serializer.getLastError() << std::endl;
+                return 1;
+            }
+            if (scene.getObjects().size() != 4) {
+                std::cerr << "[TEST FAIL] Se esperaban 4 objetos en demo.scene y hay " << scene.getObjects().size() << std::endl;
+                return 1;
+            }
+            std::cout << "[TEST SUCCESS] Todas las pruebas de SceneSerializer pasaron correctamente!" << std::endl;
+            glfwDestroyWindow(window);
+            glfwTerminate();
+            return 0;
+        }
+    }
 
     // 7. Bucle Principal de Renderizado
     while (!glfwWindowShouldClose(window)) {

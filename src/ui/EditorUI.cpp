@@ -1,5 +1,6 @@
 #include "EditorUI.h"
 #include "scene/Scene.h"
+#include "scene/SceneSerializer.h"
 #include "graphics/Primitives.h"
 
 #include <glad/glad.h>
@@ -176,6 +177,12 @@ void EditorUI::render(Scene& scene) {
             ImGui::EndTabItem();
         }
 
+        // Pestaña 3: Archivo y Persistencia de Escena
+        if (ImGui::BeginTabItem("Archivo")) {
+            renderPersistencePanel(scene);
+            ImGui::EndTabItem();
+        }
+
         ImGui::EndTabBar();
     }
 
@@ -220,6 +227,80 @@ void EditorUI::renderEnvironmentPanel(Scene& scene) {
         m_selectedObjectId = 0;
     }
     ImGui::PopStyleColor(3);
+}
+
+void EditorUI::renderPersistencePanel(Scene& scene) {
+    ImGui::Text("Persistencia de Escena 3D:");
+    ImGui::TextDisabled("Formato propio estructurado (.scene)");
+    ImGui::Spacing();
+
+    ImGui::Text("Archivo de Escena:");
+    ImGui::InputText("##RutaEscena", m_sceneFilePathBuffer, sizeof(m_sceneFilePathBuffer));
+
+    ImGui::TextDisabled("Accesos rapidos:");
+    if (ImGui::SmallButton("default.scene")) {
+        std::strncpy(m_sceneFilePathBuffer, "assets/scenes/default.scene", sizeof(m_sceneFilePathBuffer) - 1);
+        m_sceneFilePathBuffer[sizeof(m_sceneFilePathBuffer) - 1] = '\0';
+    }
+    ImGui::SameLine();
+    if (ImGui::SmallButton("demo.scene")) {
+        std::strncpy(m_sceneFilePathBuffer, "assets/scenes/demo.scene", sizeof(m_sceneFilePathBuffer) - 1);
+        m_sceneFilePathBuffer[sizeof(m_sceneFilePathBuffer) - 1] = '\0';
+    }
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // Botón Guardar Escena
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.45f, 0.28f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.24f, 0.58f, 0.36f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.14f, 0.36f, 0.22f, 1.0f));
+    if (ImGui::Button("Guardar Escena", ImVec2(-1, 0))) {
+        SceneSerializer serializer(scene);
+        if (serializer.serialize(m_sceneFilePathBuffer)) {
+            m_persistenceStatus = "Escena guardada correctamente en:\n" + std::string(m_sceneFilePathBuffer);
+            m_persistenceStatusIsError = false;
+        } else {
+            m_persistenceStatus = "Error al guardar:\n" + serializer.getLastError();
+            m_persistenceStatusIsError = true;
+        }
+    }
+    ImGui::PopStyleColor(3);
+
+    // Botón Cargar Escena
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.35f, 0.55f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.24f, 0.46f, 0.72f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.14f, 0.28f, 0.44f, 1.0f));
+    if (ImGui::Button("Cargar Escena", ImVec2(-1, 0))) {
+        SceneSerializer serializer(scene);
+        if (serializer.deserialize(m_sceneFilePathBuffer)) {
+            m_persistenceStatus = "Escena cargada y reconstruida desde:\n" + std::string(m_sceneFilePathBuffer);
+            m_persistenceStatusIsError = false;
+            m_selectedObjectId = 0;
+            m_selectedSubMeshIndex = -1;
+        } else {
+            m_persistenceStatus = "Error al cargar:\n" + serializer.getLastError();
+            m_persistenceStatusIsError = true;
+        }
+    }
+    ImGui::PopStyleColor(3);
+
+    if (!m_persistenceStatus.empty()) {
+        ImGui::Spacing();
+        if (m_persistenceStatusIsError) {
+            ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.35f, 1.0f), "%s", m_persistenceStatus.c_str());
+        } else {
+            ImGui::TextColored(ImVec4(0.35f, 1.0f, 0.45f, 1.0f), "%s", m_persistenceStatus.c_str());
+        }
+    }
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    ImGui::TextDisabled("Informacion:");
+    ImGui::TextWrapped("Almacena y restaura: jerarquia completa, mallas (.obj y procedimentales), transformaciones (P/R/S), color difuso, canal alfa, banderas de inspeccion, luces y color de fondo.");
 }
 
 void EditorUI::renderSceneHierarchyPanel(Scene& scene) {

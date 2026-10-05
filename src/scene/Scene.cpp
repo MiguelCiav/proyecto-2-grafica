@@ -57,6 +57,7 @@ std::shared_ptr<SceneObject> Scene::getObject(unsigned int id) {
 
 void Scene::clear() {
     m_objects.clear();
+    m_nextId = 1;
 }
 
 void Scene::render(Shader& shader, const glm::mat4& view, const glm::mat4& projection) {
