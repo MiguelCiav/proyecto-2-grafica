@@ -176,15 +176,15 @@ Mesh createSphereMesh(float radius, unsigned int sectors, unsigned int stacks) {
             // Primer triángulo (omitir en polo norte donde k1 colapsa)
             if (i != 0) {
                 indices.push_back(k1);
-                indices.push_back(k2);
                 indices.push_back(k1 + 1);
+                indices.push_back(k2);
             }
 
             // Segundo triángulo (omitir en polo sur donde k2 colapsa)
             if (i != (stacks - 1)) {
                 indices.push_back(k1 + 1);
-                indices.push_back(k2);
                 indices.push_back(k2 + 1);
+                indices.push_back(k2);
             }
         }
     }
@@ -227,13 +227,13 @@ Mesh createCylinderMesh(float radius, float height, unsigned int sectors) {
 
         // Triángulo 1 (CCW)
         indices.push_back(top1);
-        indices.push_back(bot1);
         indices.push_back(top2);
+        indices.push_back(bot1);
 
         // Triángulo 2 (CCW)
         indices.push_back(top2);
-        indices.push_back(bot1);
         indices.push_back(bot2);
+        indices.push_back(bot1);
     }
 
     // --- 2. Tapa Superior (+Y) ---
