@@ -63,7 +63,23 @@ private:
     void renderPerformancePanel();
     void renderRenderSettingsPanel();
     void renderEnvironmentPanel(Scene& scene);
+    void renderPersistencePanel(Scene& scene);
+    void renderLoadSceneModal(Scene& scene);
+    void renderSaveSceneModal(Scene& scene);
     void renderSceneHierarchyPanel(Scene& scene);
     void renderPrimitivesCreatorPanel(Scene& scene);
     void renderPropertiesPanel(Scene& scene);
+
+    // Persistencia de escena (.scene)
+    char m_sceneFilePathBuffer[256]{"assets/scenes/default.scene"};
+    char m_newSceneFileNameBuffer[128]{"mi_escena"};
+    std::string m_persistenceStatus;
+    bool m_persistenceStatusIsError{false};
+    std::vector<std::string> m_availableSceneFiles;
+    int m_selectedSceneIndex{0};
+
+    bool m_showLoadModal{false};
+    bool m_showSaveModal{false};
+
+    void refreshAvailableSceneFiles();
 };
