@@ -7,14 +7,16 @@
 #include "core/Shader.h"
 #include "core/Camera.h"
 #include "graphics/Mesh.h"
+#include "graphics/Model.h"
+#include "scene/Scene.h"
 #include "ui/EditorUI.h"
 
 #include <iostream>
 #include <vector>
 
 // Configuración inicial de la ventana
-unsigned int SCR_WIDTH = 800;
-unsigned int SCR_HEIGHT = 600;
+unsigned int SCR_WIDTH = 1280;
+unsigned int SCR_HEIGHT = 720;
 
 // Instancia global de la cámara (Dev A)
 Camera camera(glm::vec3(0.0f, 1.0f, 4.0f));
@@ -136,7 +138,10 @@ int main() {
         20, 21, 22,  22, 23, 20  // Izquierda
     };
 
-    Mesh testMesh(cubeVertices, cubeIndices);
+    Scene scene;
+    auto cubeModel = std::make_shared<Model>("assets/models/cube.obj");
+    auto cubeObj = scene.addObject("Cubo", cubeModel);
+    cubeObj->color = glm::vec4(0.2f, 0.7f, 0.95f, 1.0f);
 
     // 7. Bucle Principal de Renderizado
     while (!glfwWindowShouldClose(window)) {
@@ -148,38 +153,21 @@ int main() {
         // Procesar entradas de teclado
         processInput(window);
 
-        // Limpieza de los buffers de color y profundidad
-        glClearColor(0.12f, 0.12f, 0.14f, 1.0f);
+        // Limpieza de buffers usando el color de fondo dinámico de la escena
+        const auto& bg = scene.getBackgroundColor();
+        glClearColor(bg.r, bg.g, bg.b, bg.a);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // Activación del shader y paso de matrices MVP
-        baseShader.use();
 
         float aspect = (SCR_HEIGHT > 0) ? (static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT)) : 1.0f;
         glm::mat4 projection = camera.getProjectionMatrix(aspect);
         glm::mat4 view = camera.getViewMatrix();
 
-        // Rotación suave del cubo de prueba para verificar profundidad y 3D en tiempo real
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::rotate(model, currentFrame * glm::radians(30.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+        // Renderizado centralizado de la escena 3D
+        scene.render(baseShader, view, projection);
 
-        baseShader.setMat4("projection", projection);
-        baseShader.setMat4("view", view);
-        baseShader.setMat4("model", model);
-
-        // Parámetros de iluminación difusa (Modelo Lambert provisto por la cátedra)
-        // objectColor: vec4 (RGB = color difuso kd, A = canal alfa para soporte de transparencia)
-        baseShader.setVec4("objectColor", glm::vec4(0.2f, 0.65f, 0.85f, 1.0f));
-        baseShader.setVec3("lightDir", glm::vec3(-0.2f, -1.0f, -0.3f));
-        baseShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
-        baseShader.setVec3("ambientLight", glm::vec3(0.2f, 0.2f, 0.2f));
-
-        // Dibujar la geometría de prueba
-        testMesh.draw(DrawMode::Fill);
-
-        // Renderizado de la interfaz ImGui (Panel de FPS y Rendimiento)
+        // Renderizado de la interfaz gráfica completa con pestañas e inspector
         editorUI.beginFrame();
-        editorUI.render();
+        editorUI.render(scene);
         editorUI.endFrame();
 
         // Intercambio de buffers y sondeo de eventos de ventana
@@ -188,6 +176,8 @@ int main() {
     }
 
     // 8. Liberación ordenada de recursos
+    scene.clear();
+    cubeModel.reset();
     editorUI.shutdown();
     glfwDestroyWindow(window);
     glfwTerminate();
