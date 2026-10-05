@@ -200,6 +200,7 @@ void EditorUI::render(Scene& scene) {
     // Diálogos emergentes modales (centrados en la ventana principal)
     renderLoadSceneModal(scene);
     renderSaveSceneModal(scene);
+    renderLoadModelModal(scene);
 }
 
 void EditorUI::renderPerformancePanel() {
@@ -699,61 +700,24 @@ void EditorUI::renderPrimitivesCreatorPanel(Scene& scene) {
 
 void EditorUI::renderModelImporterPanel(Scene& scene) {
     if (ImGui::CollapsingHeader("Importar Modelo 3D (.obj / .mtl)")) {
-        ImGui::TextDisabled("Carga geometrias .obj con materiales .mtl complementarios.");
+        ImGui::TextDisabled("Carga geometrias Wavefront .obj con materiales .mtl complementarios.");
         ImGui::Spacing();
 
-        // Modelos disponibles en assets/models/
-        if (!m_availableModelFiles.empty()) {
-            std::vector<const char*> modelNames;
-            for (const auto& f : m_availableModelFiles) {
-                modelNames.push_back(f.c_str());
-            }
+        // Botón principal para abrir la ventana modal flotante
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.38f, 0.62f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.24f, 0.48f, 0.78f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.14f, 0.30f, 0.50f, 1.0f));
 
-            if (ImGui::Combo("Modelo en assets/##Combo", &m_selectedModelIndex, modelNames.data(), static_cast<int>(modelNames.size()))) {
-                std::string fullPath = "assets/models/" + m_availableModelFiles[m_selectedModelIndex];
-                std::strncpy(m_modelFilePathBuffer, fullPath.c_str(), sizeof(m_modelFilePathBuffer) - 1);
-                m_modelFilePathBuffer[sizeof(m_modelFilePathBuffer) - 1] = '\0';
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Refrescar##Models")) {
-                refreshAvailableModelFiles();
-            }
-        }
-
-        // Entrada de ruta editable
-        ImGui::InputText("Ruta del archivo##ModelPath", m_modelFilePathBuffer, sizeof(m_modelFilePathBuffer));
-
-        ImGui::Spacing();
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.22f, 0.45f, 0.65f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.28f, 0.55f, 0.78f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.16f, 0.35f, 0.52f, 1.0f));
-
-        if (ImGui::Button("Cargar e Instanciar en Escena", ImVec2(-1, 32))) {
-            std::string pathStr(m_modelFilePathBuffer);
-            auto newModel = std::make_shared<Model>(pathStr);
-
-            if (newModel && newModel->isLoaded()) {
-                std::filesystem::path p(pathStr);
-                std::string entityName = p.stem().string();
-                if (entityName.empty()) entityName = "Modelo 3D";
-
-                auto newObj = scene.addObject(entityName, newModel);
-                m_selectedObjectId = newObj->id;
-                scene.selectedObjectID = newObj->id;
-                m_selectedSubMeshIndex = -1;
-                m_selectedTriangleIndex = -1;
-
-                m_modelImportStatus = "Modelo cargado exitosamente:\n" + pathStr + 
-                                      " (" + std::to_string(newModel->getSubMeshes().size()) + " sub-mallados)";
-                m_modelImportStatusIsError = false;
-            } else {
-                m_modelImportStatus = "Error: no se pudo cargar el archivo OBJ en:\n" + pathStr;
-                m_modelImportStatusIsError = true;
-            }
+        if (ImGui::Button("Explorar y Cargar Modelo...", ImVec2(-1, 38))) {
+            refreshAvailableModelFiles();
+            m_showLoadModelModal = true;
         }
         ImGui::PopStyleColor(3);
 
+        // Mensaje de estado de la última importación
         if (!m_modelImportStatus.empty()) {
+            ImGui::Spacing();
+            ImGui::Separator();
             ImGui::Spacing();
             if (m_modelImportStatusIsError) {
                 ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.35f, 1.0f), "%s", m_modelImportStatus.c_str());
@@ -763,9 +727,173 @@ void EditorUI::renderModelImporterPanel(Scene& scene) {
         }
 
         ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        // Sección colapsable para ruta manual externa
+        if (ImGui::CollapsingHeader("Ruta Manual de Modelo")) {
+            ImGui::InputText("Ruta##ModelDirect", m_modelFilePathBuffer, sizeof(m_modelFilePathBuffer));
+            if (ImGui::Button("Cargar desde Ruta Manual##Model", ImVec2(-1, 0))) {
+                std::string pathStr(m_modelFilePathBuffer);
+                auto newModel = std::make_shared<Model>(pathStr);
+                if (newModel && newModel->isLoaded()) {
+                    std::filesystem::path p(pathStr);
+                    std::string entityName = p.stem().string();
+                    if (entityName.empty()) entityName = "Modelo 3D";
+
+                    auto newObj = scene.addObject(entityName, newModel);
+                    m_selectedObjectId = newObj->id;
+                    scene.selectedObjectID = newObj->id;
+                    m_selectedSubMeshIndex = -1;
+                    m_selectedTriangleIndex = -1;
+
+                    m_modelImportStatus = "Modelo cargado exitosamente:\n" + pathStr +
+                                          " (" + std::to_string(newModel->getSubMeshes().size()) + " sub-mallados)";
+                    m_modelImportStatusIsError = false;
+                } else {
+                    m_modelImportStatus = "Error al cargar archivo OBJ:\n" + pathStr;
+                    m_modelImportStatusIsError = true;
+                }
+            }
+        }
+
+        ImGui::Spacing();
         ImGui::TextDisabled("* Propiedades .mtl (Kd) cargadas de forma automatica.");
-        ImGui::TextDisabled("* Normales promedio calculadas si estan ausentes.");
+        ImGui::TextDisabled("* Normales promedio calculadas si faltan.");
         ImGui::TextDisabled("* Normalizado a [-1, 1] y centrado en origen.");
+    }
+}
+
+void EditorUI::renderLoadModelModal(Scene& scene) {
+    if (m_showLoadModelModal) {
+        ImGui::OpenPopup("Cargar Modelo 3D (.obj)##ModalDialog");
+        m_showLoadModelModal = false;
+    }
+
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(480, 380), ImGuiCond_Appearing);
+
+    if (ImGui::BeginPopupModal("Cargar Modelo 3D (.obj)##ModalDialog", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
+        ImGui::Text("Selecciona un modelo Wavefront .obj para instanciar en la escena:");
+        ImGui::Spacing();
+
+        ImGui::TextDisabled("Directorio: assets/models/");
+        ImGui::SameLine(ImGui::GetWindowWidth() - 95.0f);
+        if (ImGui::SmallButton("Recargar")) {
+            refreshAvailableModelFiles();
+        }
+
+        ImGui::Spacing();
+
+        // Lista interactiva desplazable con los archivos .obj
+        ImGui::BeginChild("ModelFileListRegion", ImVec2(0, 190), true);
+        if (m_availableModelFiles.empty()) {
+            ImGui::TextDisabled("No se encontraron archivos .obj en assets/models/");
+        } else {
+            for (int i = 0; i < static_cast<int>(m_availableModelFiles.size()); ++i) {
+                const bool isSelected = (m_selectedModelIndex == i);
+                std::string itemLabel = "  " + m_availableModelFiles[i];
+
+                if (ImGui::Selectable(itemLabel.c_str(), isSelected, ImGuiSelectableFlags_AllowDoubleClick)) {
+                    m_selectedModelIndex = i;
+
+                    // Doble clic para cargar de inmediato
+                    if (ImGui::IsMouseDoubleClicked(0)) {
+                        std::string loadPath = "assets/models/" + m_availableModelFiles[i];
+                        auto newModel = std::make_shared<Model>(loadPath);
+                        if (newModel && newModel->isLoaded()) {
+                            std::filesystem::path p(loadPath);
+                            std::string entityName = p.stem().string();
+                            if (entityName.empty()) entityName = "Modelo 3D";
+
+                            auto newObj = scene.addObject(entityName, newModel);
+                            m_selectedObjectId = newObj->id;
+                            scene.selectedObjectID = newObj->id;
+                            m_selectedSubMeshIndex = -1;
+                            m_selectedTriangleIndex = -1;
+
+                            m_modelImportStatus = "Modelo cargado exitosamente:\n" + loadPath +
+                                                  " (" + std::to_string(newModel->getSubMeshes().size()) + " sub-mallados)";
+                            m_modelImportStatusIsError = false;
+                        } else {
+                            m_modelImportStatus = "Error al cargar archivo OBJ:\n" + loadPath;
+                            m_modelImportStatusIsError = true;
+                        }
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+
+                if (isSelected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+        }
+        ImGui::EndChild();
+
+        ImGui::Spacing();
+
+        // Archivo activo seleccionado
+        std::string selectedFilename = (m_selectedModelIndex >= 0 && m_selectedModelIndex < static_cast<int>(m_availableModelFiles.size()))
+                                       ? m_availableModelFiles[m_selectedModelIndex]
+                                       : "";
+
+        if (!selectedFilename.empty()) {
+            ImGui::Text("Modelo seleccionado:");
+            ImGui::SameLine();
+            ImGui::TextColored(ImVec4(0.35f, 0.75f, 1.0f, 1.0f), "%s", selectedFilename.c_str());
+        } else {
+            ImGui::TextDisabled("Ningun archivo seleccionado.");
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        // Botones inferiores de acción
+        float buttonWidth = 140.0f;
+        float spacing = ImGui::GetWindowWidth() - (buttonWidth * 2.0f) - 30.0f;
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.38f, 0.62f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.24f, 0.48f, 0.78f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.14f, 0.30f, 0.50f, 1.0f));
+        bool canLoad = !selectedFilename.empty();
+        if (!canLoad) ImGui::BeginDisabled();
+
+        if (ImGui::Button("Cargar Modelo", ImVec2(buttonWidth, 32))) {
+            std::string loadPath = "assets/models/" + selectedFilename;
+            auto newModel = std::make_shared<Model>(loadPath);
+            if (newModel && newModel->isLoaded()) {
+                std::filesystem::path p(loadPath);
+                std::string entityName = p.stem().string();
+                if (entityName.empty()) entityName = "Modelo 3D";
+
+                auto newObj = scene.addObject(entityName, newModel);
+                m_selectedObjectId = newObj->id;
+                scene.selectedObjectID = newObj->id;
+                m_selectedSubMeshIndex = -1;
+                m_selectedTriangleIndex = -1;
+
+                m_modelImportStatus = "Modelo cargado exitosamente:\n" + loadPath +
+                                      " (" + std::to_string(newModel->getSubMeshes().size()) + " sub-mallados)";
+                m_modelImportStatusIsError = false;
+            } else {
+                m_modelImportStatus = "Error al cargar archivo OBJ:\n" + loadPath;
+                m_modelImportStatusIsError = true;
+            }
+            ImGui::CloseCurrentPopup();
+        }
+
+        if (!canLoad) ImGui::EndDisabled();
+        ImGui::PopStyleColor(3);
+
+        ImGui::SameLine(0, spacing > 10.0f ? spacing : 10.0f);
+
+        if (ImGui::Button("Cancelar", ImVec2(buttonWidth, 32))) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
     }
 }
 

@@ -73,6 +73,7 @@ private:
     void renderPersistencePanel(Scene& scene);
     void renderLoadSceneModal(Scene& scene);
     void renderSaveSceneModal(Scene& scene);
+    void renderLoadModelModal(Scene& scene);
     void renderSceneHierarchyPanel(Scene& scene);
     void renderPrimitivesCreatorPanel(Scene& scene);
     void renderModelImporterPanel(Scene& scene);
@@ -97,6 +98,7 @@ private:
     bool m_modelImportStatusIsError{false};
     std::vector<std::string> m_availableModelFiles;
     int m_selectedModelIndex{0};
+    bool m_showLoadModelModal{false};
 
     void refreshAvailableModelFiles();
 };
