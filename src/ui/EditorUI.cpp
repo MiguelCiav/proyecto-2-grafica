@@ -171,9 +171,21 @@ void EditorUI::render(Scene& scene) {
 
     // 2. Sistema de 2 Pestañas: Escena y Figuras (Opción B)
     if (ImGui::BeginTabBar("EditorTabBar")) {
-        // Pestaña 1: Escena (Gestión global, entorno, render, jerarquía e inspector)
+        // Pestaña 1: Escena (Jerarquía, inspector, entorno, render y persistencia)
         if (ImGui::BeginTabItem("Escena")) {
-            renderPersistencePanel(scene);
+            // Secciones primarias más utilizadas en la parte superior
+            renderSceneHierarchyPanel(scene);
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            renderPropertiesPanel(scene);
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            // Secciones secundarias / globales
+            renderEnvironmentPanel(scene);
             ImGui::Spacing();
             ImGui::Separator();
             ImGui::Spacing();
@@ -183,17 +195,7 @@ void EditorUI::render(Scene& scene) {
             ImGui::Separator();
             ImGui::Spacing();
 
-            renderEnvironmentPanel(scene);
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Spacing();
-
-            renderSceneHierarchyPanel(scene);
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Spacing();
-
-            renderPropertiesPanel(scene);
+            renderPersistencePanel(scene);
             ImGui::EndTabItem();
         }
 
