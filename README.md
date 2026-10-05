@@ -107,3 +107,20 @@ Abre la terminal integrada en VS Code (`Ctrl + ~` o `Terminal -> New Terminal`) 
      ```powershell
      .\build\ProyectoGrafica.exe
      ```
+
+---
+
+## Generación del Paquete de Entrega (.zip)
+
+Para generar el archivo comprimido final requerido para la evaluación (`PROY2_CEDULA1_CEDULA2.zip`), ejecute el script multiplataforma en la raíz del proyecto pasando las cédulas de ambos integrantes:
+
+```bash
+python3 scripts/package_submission.py <CEDULA_INTEGRANTE_1> <CEDULA_INTEGRANTE_2>
+```
+
+Ejemplo:
+```bash
+python3 scripts/package_submission.py 28123456 29654321
+```
+
+Este script empaqueta automáticamente el código fuente (`src/`, `external/`), recursos (`assets/`), configuración de CMake (`CMakeLists.txt`) y documentación (`README.md`), excluyendo de forma estricta directorios temporales, binarios de compilación (`build/`) o metadatos de Git (`.git/`).
