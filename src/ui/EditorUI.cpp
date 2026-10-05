@@ -1,5 +1,6 @@
 #include "EditorUI.h"
 #include "scene/Scene.h"
+#include "graphics/Primitives.h"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -159,6 +160,8 @@ void EditorUI::render(Scene& scene) {
         if (ImGui::BeginTabItem("Escena")) {
             renderSceneHierarchyPanel(scene);
             ImGui::Separator();
+            renderPrimitivesCreatorPanel(scene);
+            ImGui::Separator();
             renderPropertiesPanel(scene);
             ImGui::EndTabItem();
         }
@@ -235,6 +238,60 @@ void EditorUI::renderSceneHierarchyPanel(Scene& scene) {
         }
     }
     ImGui::EndChild();
+}
+
+void EditorUI::renderPrimitivesCreatorPanel(Scene& scene) {
+    if (ImGui::CollapsingHeader("Añadir Primitiva Geometrica")) {
+        const char* primitiveTypes[] = {"Cubo", "Piramide", "Esfera", "Cilindro"};
+        static int currentType = 0;
+        ImGui::Combo("Figura", &currentType, primitiveTypes, IM_ARRAYSIZE(primitiveTypes));
+
+        static float cubeSize = 1.0f;
+        static float pyrBase = 1.0f, pyrHeight = 1.0f;
+        static float sphereRadius = 1.0f;
+        static int sphereSectors = 32, sphereStacks = 16;
+        static float cylRadius = 1.0f, cylHeight = 1.0f;
+        static int cylSectors = 32;
+
+        if (currentType == 0) { // Cubo
+            ImGui::DragFloat("Arista", &cubeSize, 0.05f, 0.1f, 20.0f);
+        } else if (currentType == 1) { // Pirámide
+            ImGui::DragFloat("Base", &pyrBase, 0.05f, 0.1f, 20.0f);
+            ImGui::DragFloat("Altura", &pyrHeight, 0.05f, 0.1f, 20.0f);
+        } else if (currentType == 2) { // Esfera
+            ImGui::DragFloat("Radio", &sphereRadius, 0.05f, 0.1f, 20.0f);
+            ImGui::SliderInt("Sectores", &sphereSectors, 3, 64);
+            ImGui::SliderInt("Anillos (Stacks)", &sphereStacks, 2, 32);
+        } else if (currentType == 3) { // Cilindro
+            ImGui::DragFloat("Radio", &cylRadius, 0.05f, 0.1f, 20.0f);
+            ImGui::DragFloat("Altura", &cylHeight, 0.05f, 0.1f, 20.0f);
+            ImGui::SliderInt("Sectores", &cylSectors, 3, 64);
+        }
+
+        if (ImGui::Button("Instanciar en Escena", ImVec2(-1, 0))) {
+            std::shared_ptr<Model> newModel = nullptr;
+            std::string name;
+
+            if (currentType == 0) {
+                newModel = Primitives::createCube(cubeSize);
+                name = "Cubo Procedimental";
+            } else if (currentType == 1) {
+                newModel = Primitives::createPyramid(pyrBase, pyrHeight);
+                name = "Piramide Procedimental";
+            } else if (currentType == 2) {
+                newModel = Primitives::createSphere(sphereRadius, sphereSectors, sphereStacks);
+                name = "Esfera Procedimental";
+            } else if (currentType == 3) {
+                newModel = Primitives::createCylinder(cylRadius, cylHeight, cylSectors);
+                name = "Cilindro Procedimental";
+            }
+
+            if (newModel) {
+                auto newObj = scene.addObject(name, newModel);
+                m_selectedObjectId = newObj->id;
+            }
+        }
+    }
 }
 
 void EditorUI::renderPropertiesPanel(Scene& scene) {

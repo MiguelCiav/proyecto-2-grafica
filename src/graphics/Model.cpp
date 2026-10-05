@@ -9,6 +9,25 @@ Model::Model(const std::string& filepath) {
     loadFromFile(filepath);
 }
 
+Model::Model(Mesh mesh, const std::string& name, const glm::vec4& diffuseColor) {
+    if (!mesh.vertices.empty()) {
+        glm::vec3 minB(std::numeric_limits<float>::max());
+        glm::vec3 maxB(-std::numeric_limits<float>::max());
+        for (const auto& v : mesh.vertices) {
+            minB = glm::min(minB, v.Position);
+            maxB = glm::max(maxB, v.Position);
+        }
+        m_minBound = minB;
+        m_maxBound = maxB;
+    }
+    m_filepath = "[Procedural] " + name;
+    m_subMeshes.push_back(SubMesh{std::move(mesh), diffuseColor, name});
+}
+
+Model::Model(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const std::string& name, const glm::vec4& diffuseColor)
+    : Model(Mesh(vertices, indices), name, diffuseColor) {
+}
+
 
 void Model::normalizeModel(tinyobj::attrib_t& attrib){
     

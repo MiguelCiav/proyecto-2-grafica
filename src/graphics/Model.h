@@ -28,6 +28,8 @@ class Model {
 public:
     Model() = default;
     explicit Model(const std::string& filepath);
+    Model(Mesh mesh, const std::string& name = "Primitive", const glm::vec4& diffuseColor = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f));
+    Model(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices = {}, const std::string& name = "Primitive", const glm::vec4& diffuseColor = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f));
 
     // Carga de archivo .obj y su correspondiente .mtl
     bool loadFromFile(const std::string& filepath);

@@ -51,5 +51,6 @@ private:
     void renderRenderSettingsPanel();
     void renderEnvironmentPanel(Scene& scene);
     void renderSceneHierarchyPanel(Scene& scene);
+    void renderPrimitivesCreatorPanel(Scene& scene);
     void renderPropertiesPanel(Scene& scene);
 };
