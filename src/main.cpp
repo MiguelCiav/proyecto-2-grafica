@@ -45,27 +45,27 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void processInput(GLFWwindow* window);
 
-int main(int argc, char* argv[]) {
+GLFWwindow* initWindow(unsigned int width, unsigned int height, const char* title) {
     // 1. Inicialización y configuración de GLFW
     if (!glfwInit()) {
         std::cerr << "[ERROR::GLFW] Falló la inicialización de GLFW." << std::endl;
-        return -1;
+        return nullptr;
     }
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    #ifdef __APPLE__
-        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    #endif
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
 
-    // 2. Creación de la ventana GLFW (1280x720)
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Proyecto #2 - Computación Gráfica (UCV)", nullptr, nullptr);
+    // 2. Creación de la ventana GLFW
+    GLFWwindow* window = glfwCreateWindow(width, height, title, nullptr, nullptr);
     if (!window) {
         std::cerr << "[ERROR::GLFW] Falló la creación de la ventana GLFW." << std::endl;
         glfwTerminate();
-        return -1;
+        return nullptr;
     }
 
     glfwMakeContextCurrent(window);
@@ -79,36 +79,24 @@ int main(int argc, char* argv[]) {
     // Habilitar V-Sync para estabilidad
     glfwSwapInterval(1);
 
-    // 3. Inicialización de GLAD (debe ejecutarse tras glfwMakeContextCurrent)
+    // 3. Inicialización de punteros OpenGL con GLAD
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
         std::cerr << "[ERROR::GLAD] Falló la inicialización de punteros de OpenGL con GLAD." << std::endl;
         glfwDestroyWindow(window);
         glfwTerminate();
-        return -1;
+        return nullptr;
     }
 
     // Configuración inicial del viewport y estados de OpenGL
-    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+    glViewport(0, 0, width, height);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // 4. Inicialización de Dear ImGui (Dev B)
-    EditorUI editorUI;
-    editorUI.init(window);
+    return window;
+}
 
-    // 5. Carga y compilación de shaders base provistos por la cátedra (Dev A)
-    Shader baseShader("assets/shaders/base.vert", "assets/shaders/base.frag");
-    Shader pickingShader("assets/shaders/picking.vert", "assets/shaders/picking.frag");
-    Shader debugShader("assets/shaders/debug.vert", "assets/shaders/debug.frag");
-
-    // Framebuffer fuera de pantalla para Color Picking (Dev A)
-    Framebuffer pickingFBO(SCR_WIDTH, SCR_HEIGHT);
-    g_pickingFBO = &pickingFBO;
-
-    // 6. Configuración de la Escena y carga de entidades iniciales (INT-02)
-    Scene scene;
-
+void setupInitialScene(Scene& scene) {
     // A. Modelo OBJ Multi-Mallado para demostración de Selección Local (6 sub-mallados)
     auto robotModel = std::make_shared<Model>("assets/models/robot.obj");
     auto robotObj = scene.addObject("Droide (Multi-Malla)", robotModel);
@@ -124,56 +112,177 @@ int main(int argc, char* argv[]) {
     auto cylinderObj = scene.addObject("Cilindro Procedimental", cylinderModel);
     cylinderObj->transform.position = glm::vec3(2.2f, 0.0f, 0.0f);
     cylinderObj->color = glm::vec4(0.3f, 0.85f, 0.35f, 1.0f);
+}
 
-    // Modo de prueba automatizada para SceneSerializer
-    for (int i = 1; i < argc; ++i) {
-        if (std::string(argv[i]) == "--test-serializer") {
-            SceneSerializer serializer(scene);
-            std::cout << "[TEST] Probando SceneSerializer::serialize..." << std::endl;
-            if (!serializer.serialize("assets/scenes/test_run.scene")) {
-                std::cerr << "[TEST FAIL] Error al serializar: " << serializer.getLastError() << std::endl;
-                return 1;
+void executePickingPass(Scene& scene, EditorUI& editorUI, Framebuffer& pickingFBO,
+                        Shader& pickingShader, const glm::mat4& view, const glm::mat4& projection) {
+    if (!pendingPick) return;
+    pendingPick = false;
+
+    pickingFBO.bind();
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    scene.renderForPicking(pickingShader, view, projection, editorUI.getSelectionMode());
+
+    unsigned int pickedID = pickingFBO.readPixelID(pickX, pickY);
+    pickingFBO.unbind();
+
+    // Restaurar estados normales de rasterizado
+    glEnable(GL_BLEND);
+    if (!editorUI.isDepthTestEnabled()) {
+        glDisable(GL_DEPTH_TEST);
+    }
+
+    // Aplicar selección en EditorUI y Scene según el modo activo
+    if (editorUI.getSelectionMode() == SelectionMode::Global) {
+        scene.selectedObjectID = pickedID;
+        editorUI.setSelectedObjectId(pickedID);
+        editorUI.setSelectedSubMeshIndex(-1);
+        editorUI.setSelectedTriangleIndex(-1);
+    } else if (editorUI.getSelectionMode() == SelectionMode::Local) {
+        if (pickedID == 0) {
+            scene.selectedObjectID = 0;
+            editorUI.setSelectedObjectId(0);
+            editorUI.setSelectedSubMeshIndex(-1);
+            editorUI.setSelectedTriangleIndex(-1);
+        } else {
+            unsigned int objId = 0;
+            int subIdx = -1;
+            Framebuffer::decodeLocalID(pickedID, objId, subIdx);
+            scene.selectedObjectID = objId;
+            editorUI.setSelectedObjectId(objId);
+            editorUI.setSelectedSubMeshIndex(subIdx);
+            editorUI.setSelectedTriangleIndex(-1);
+        }
+    } else if (editorUI.getSelectionMode() == SelectionMode::Triangle) {
+        if (pickedID == 0) {
+            scene.selectedObjectID = 0;
+            editorUI.setSelectedObjectId(0);
+            editorUI.setSelectedSubMeshIndex(-1);
+            editorUI.setSelectedTriangleIndex(-1);
+        } else {
+            TriangleHit hit;
+            if (scene.getTriangleHit(pickedID, hit)) {
+                scene.selectedObjectID = hit.objectId;
+                editorUI.setSelectedObjectId(hit.objectId);
+                editorUI.setSelectedSubMeshIndex(hit.subMeshIndex);
+                editorUI.setSelectedTriangleIndex(hit.localTriangleIndex);
+            } else {
+                scene.selectedObjectID = 0;
+                editorUI.setSelectedObjectId(0);
+                editorUI.setSelectedSubMeshIndex(-1);
+                editorUI.setSelectedTriangleIndex(-1);
             }
-            std::cout << "[TEST] Probando Scene::clear()..." << std::endl;
-            size_t initialCount = scene.getObjects().size();
-            scene.clear();
-            if (!scene.getObjects().empty()) {
-                std::cerr << "[TEST FAIL] Scene::clear() no vacio la lista de objetos." << std::endl;
-                return 1;
+        }
+    }
+}
+
+void renderSelectionHighlights(Scene& scene, EditorUI& editorUI,
+                               Shader& baseShader, Shader& debugShader,
+                               const glm::mat4& view, const glm::mat4& projection) {
+    // 1. Marcado visual del triángulo seleccionado en Modo Triángulo (REQ-A7)
+    if (editorUI.getSelectionMode() == SelectionMode::Triangle && editorUI.getSelectedTriangleIndex() >= 0) {
+        auto selObj = scene.getObject(editorUI.getSelectedObjectId());
+        if (selObj && selObj->visible && selObj->model) {
+            int sIdx = editorUI.getSelectedSubMeshIndex();
+            if (sIdx < 0 && !selObj->model->getSubMeshes().empty()) {
+                sIdx = 0;
             }
-            std::cout << "[TEST] Probando SceneSerializer::deserialize..." << std::endl;
-            if (!serializer.deserialize("assets/scenes/test_run.scene")) {
-                std::cerr << "[TEST FAIL] Error al deserializar: " << serializer.getLastError() << std::endl;
-                return 1;
+            const auto& subMeshes = selObj->model->getSubMeshes();
+            if (sIdx >= 0 && sIdx < static_cast<int>(subMeshes.size())) {
+                const auto& sm = subMeshes[sIdx];
+                unsigned int triIdx = static_cast<unsigned int>(editorUI.getSelectedTriangleIndex());
+
+                baseShader.use();
+                baseShader.setMat4("model", selObj->getModelMatrix());
+
+                // Dibujar cara rellena con color ámbar brillante (polygon offset para evitar Z-fighting)
+                glEnable(GL_POLYGON_OFFSET_FILL);
+                glPolygonOffset(-2.0f, -2.0f);
+                baseShader.setVec4("objectColor", glm::vec4(1.0f, 0.85f, 0.1f, 0.95f));
+                sm.mesh.drawTriangle(triIdx, DrawMode::Fill);
+                glDisable(GL_POLYGON_OFFSET_FILL);
+
+                // Delinear aristas con wireframe rojo vivo
+                glEnable(GL_POLYGON_OFFSET_LINE);
+                glPolygonOffset(-3.0f, -3.0f);
+                glLineWidth(3.0f);
+                baseShader.setVec4("objectColor", glm::vec4(1.0f, 0.2f, 0.2f, 1.0f));
+                sm.mesh.drawTriangle(triIdx, DrawMode::Wireframe);
+                glLineWidth(1.0f);
+                glDisable(GL_POLYGON_OFFSET_LINE);
             }
-            if (scene.getObjects().size() != initialCount) {
-                std::cerr << "[TEST FAIL] Se esperaban " << initialCount << " objetos y hay " << scene.getObjects().size() << std::endl;
-                return 1;
-            }
-            std::cout << "[TEST] Probando deserialize en assets/scenes/demo.scene..." << std::endl;
-            if (!serializer.deserialize("assets/scenes/demo.scene")) {
-                std::cerr << "[TEST FAIL] Error al deserializar demo.scene: " << serializer.getLastError() << std::endl;
-                return 1;
-            }
-            if (scene.getObjects().size() != 4) {
-                std::cerr << "[TEST FAIL] Se esperaban 4 objetos en demo.scene y hay " << scene.getObjects().size() << std::endl;
-                return 1;
-            }
-            std::cout << "[TEST SUCCESS] Todas las pruebas de SceneSerializer pasaron correctamente!" << std::endl;
-            glfwDestroyWindow(window);
-            glfwTerminate();
-            return 0;
         }
     }
 
-    // 7. Bucle Principal de Renderizado
+    // 2. Marcado visual del sub-mallado seleccionado en Modo Local
+    if (editorUI.getSelectionMode() == SelectionMode::Local && editorUI.getSelectedSubMeshIndex() >= 0) {
+        auto selObj = scene.getObject(editorUI.getSelectedObjectId());
+        if (selObj && selObj->visible && selObj->model) {
+            int sIdx = editorUI.getSelectedSubMeshIndex();
+            const auto& subMeshes = selObj->model->getSubMeshes();
+            if (sIdx >= 0 && sIdx < static_cast<int>(subMeshes.size())) {
+                const auto& sm = subMeshes[sIdx];
+                debugShader.use();
+                debugShader.setMat4("projection", projection);
+                debugShader.setMat4("view", view);
+                debugShader.setMat4("model", selObj->getModelMatrix());
+                debugShader.setVec4("debugColor", glm::vec4(0.18f, 0.76f, 0.98f, 1.0f)); // Contorno cian eléctrico
+
+                glEnable(GL_POLYGON_OFFSET_LINE);
+                glPolygonOffset(-2.0f, -2.0f);
+                glLineWidth(2.5f);
+                sm.mesh.draw(DrawMode::Wireframe);
+                glLineWidth(1.0f);
+                glDisable(GL_POLYGON_OFFSET_LINE);
+            }
+        }
+    }
+}
+
+void cleanup(GLFWwindow* window, EditorUI& editorUI, Scene& scene) {
+    g_pickingFBO = nullptr;
+    scene.clear();
+    editorUI.shutdown();
+    if (window) {
+        glfwDestroyWindow(window);
+    }
+    glfwTerminate();
+}
+
+int main(int argc, char* argv[]) {
+    (void)argc;
+    (void)argv;
+
+    // 1. Inicialización de ventana y contexto OpenGL
+    GLFWwindow* window = initWindow(SCR_WIDTH, SCR_HEIGHT, "Proyecto #2 - Computación Gráfica (UCV)");
+    if (!window) return -1;
+
+    // 2. Inicialización de Dear ImGui
+    EditorUI editorUI;
+    editorUI.init(window);
+
+    // 3. Shaders y Framebuffer de Color Picking
+    Shader baseShader("assets/shaders/base.vert", "assets/shaders/base.frag");
+    Shader pickingShader("assets/shaders/picking.vert", "assets/shaders/picking.frag");
+    Shader debugShader("assets/shaders/debug.vert", "assets/shaders/debug.frag");
+
+    Framebuffer pickingFBO(SCR_WIDTH, SCR_HEIGHT);
+    g_pickingFBO = &pickingFBO;
+
+    // 4. Configuración de entidades iniciales de la Escena
+    Scene scene;
+    setupInitialScene(scene);
+
+    // 5. Bucle Principal de Renderizado
     while (!glfwWindowShouldClose(window)) {
-        // Cálculo del tiempo por fotograma (deltaTime)
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        // Procesar entradas de teclado
         processInput(window);
 
         // Limpieza de buffers usando el color de fondo dinámico de la escena
@@ -185,157 +294,26 @@ int main(int argc, char* argv[]) {
         glm::mat4 projection = camera.getProjectionMatrix(aspect);
         glm::mat4 view = camera.getViewMatrix();
 
-        // 7.1 Pasada optimizada de Color Picking (Dev A: solo se ejecuta ante clics en el viewport 3D)
-        if (pendingPick) {
-            pendingPick = false;
+        // Pasadas de renderizado
+        executePickingPass(scene, editorUI, pickingFBO, pickingShader, view, projection);
 
-            pickingFBO.bind();
-            glDisable(GL_BLEND);
-            glEnable(GL_DEPTH_TEST);
-            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            scene.renderForPicking(pickingShader, view, projection, editorUI.getSelectionMode());
-
-            unsigned int pickedID = pickingFBO.readPixelID(pickX, pickY);
-            pickingFBO.unbind();
-
-            // Restaurar estados normales de rasterizado
-            glEnable(GL_BLEND);
-            if (!editorUI.isDepthTestEnabled()) {
-                glDisable(GL_DEPTH_TEST);
-            }
-
-            // Aplicar selección en EditorUI y Scene según el modo activo
-            if (editorUI.getSelectionMode() == SelectionMode::Global) {
-                scene.selectedObjectID = pickedID;
-                editorUI.setSelectedObjectId(pickedID);
-                editorUI.setSelectedSubMeshIndex(-1);
-                editorUI.setSelectedTriangleIndex(-1);
-            } else if (editorUI.getSelectionMode() == SelectionMode::Local) {
-                if (pickedID == 0) {
-                    scene.selectedObjectID = 0;
-                    editorUI.setSelectedObjectId(0);
-                    editorUI.setSelectedSubMeshIndex(-1);
-                    editorUI.setSelectedTriangleIndex(-1);
-                } else {
-                    unsigned int objId = 0;
-                    int subIdx = -1;
-                    Framebuffer::decodeLocalID(pickedID, objId, subIdx);
-                    scene.selectedObjectID = objId;
-                    editorUI.setSelectedObjectId(objId);
-                    editorUI.setSelectedSubMeshIndex(subIdx);
-                    editorUI.setSelectedTriangleIndex(-1);
-                }
-            } else if (editorUI.getSelectionMode() == SelectionMode::Triangle) {
-                if (pickedID == 0) {
-                    scene.selectedObjectID = 0;
-                    editorUI.setSelectedObjectId(0);
-                    editorUI.setSelectedSubMeshIndex(-1);
-                    editorUI.setSelectedTriangleIndex(-1);
-                } else {
-                    TriangleHit hit;
-                    if (scene.getTriangleHit(pickedID, hit)) {
-                        scene.selectedObjectID = hit.objectId;
-                        editorUI.setSelectedObjectId(hit.objectId);
-                        editorUI.setSelectedSubMeshIndex(hit.subMeshIndex);
-                        editorUI.setSelectedTriangleIndex(hit.localTriangleIndex);
-                    } else {
-                        scene.selectedObjectID = 0;
-                        editorUI.setSelectedObjectId(0);
-                        editorUI.setSelectedSubMeshIndex(-1);
-                        editorUI.setSelectedTriangleIndex(-1);
-                    }
-                }
-            }
-        }
-
-        // 7.2 Actualización de lógica temporal de la escena
         scene.update(deltaTime);
-
-        // 7.3 Renderizado centralizado de la escena 3D
         scene.render(baseShader, view, projection);
 
-        // 7.2 Marcado visual del triángulo seleccionado (REQ-A7 - Requisito Parejas)
-        if (editorUI.getSelectionMode() == SelectionMode::Triangle && editorUI.getSelectedTriangleIndex() >= 0) {
-            auto selObj = scene.getObject(editorUI.getSelectedObjectId());
-            if (selObj && selObj->visible && selObj->model) {
-                int sIdx = editorUI.getSelectedSubMeshIndex();
-                if (sIdx < 0 && !selObj->model->getSubMeshes().empty()) {
-                    sIdx = 0;
-                }
-                const auto& subMeshes = selObj->model->getSubMeshes();
-                if (sIdx >= 0 && sIdx < static_cast<int>(subMeshes.size())) {
-                    const auto& sm = subMeshes[sIdx];
-                    unsigned int triIdx = static_cast<unsigned int>(editorUI.getSelectedTriangleIndex());
-
-                    baseShader.use();
-                    baseShader.setMat4("model", selObj->getModelMatrix());
-
-                    // 1. Dibujar cara rellena con color ámbar brillante (sin Z-fighting mediante polygon offset)
-                    glEnable(GL_POLYGON_OFFSET_FILL);
-                    glPolygonOffset(-2.0f, -2.0f);
-                    baseShader.setVec4("objectColor", glm::vec4(1.0f, 0.85f, 0.1f, 0.95f));
-                    sm.mesh.drawTriangle(triIdx, DrawMode::Fill);
-                    glDisable(GL_POLYGON_OFFSET_FILL);
-
-                    // 2. Delinear aristas con wireframe destacado en color rojo vivo
-                    glEnable(GL_POLYGON_OFFSET_LINE);
-                    glPolygonOffset(-3.0f, -3.0f);
-                    glLineWidth(3.0f);
-                    baseShader.setVec4("objectColor", glm::vec4(1.0f, 0.2f, 0.2f, 1.0f));
-                    sm.mesh.drawTriangle(triIdx, DrawMode::Wireframe);
-                    glLineWidth(1.0f);
-                    glDisable(GL_POLYGON_OFFSET_LINE);
-                }
-            }
-        }
-
-        // 7.2.1 Marcado visual del sub-mallado seleccionado en Modo Local
-        if (editorUI.getSelectionMode() == SelectionMode::Local && editorUI.getSelectedSubMeshIndex() >= 0) {
-            auto selObj = scene.getObject(editorUI.getSelectedObjectId());
-            if (selObj && selObj->visible && selObj->model) {
-                int sIdx = editorUI.getSelectedSubMeshIndex();
-                const auto& subMeshes = selObj->model->getSubMeshes();
-                if (sIdx >= 0 && sIdx < static_cast<int>(subMeshes.size())) {
-                    const auto& sm = subMeshes[sIdx];
-                    debugShader.use();
-                    debugShader.setMat4("projection", projection);
-                    debugShader.setMat4("view", view);
-                    debugShader.setMat4("model", selObj->getModelMatrix());
-                    debugShader.setVec4("debugColor", glm::vec4(0.18f, 0.76f, 0.98f, 1.0f)); // Contorno cian eléctrico
-
-                    glEnable(GL_POLYGON_OFFSET_LINE);
-                    glPolygonOffset(-2.0f, -2.0f);
-                    glLineWidth(2.5f);
-                    sm.mesh.draw(DrawMode::Wireframe);
-                    glLineWidth(1.0f);
-                    glDisable(GL_POLYGON_OFFSET_LINE);
-                }
-            }
-        }
-
-        // 7.3 Herramientas de Inspección Geométrica Avanzada (REQ-A8: Normales, Vértices, Bounding Box)
+        renderSelectionHighlights(scene, editorUI, baseShader, debugShader, view, projection);
         scene.renderDebug(debugShader, view, projection, editorUI.getPointSize());
 
-        // Renderizado de la interfaz gráfica completa con pestañas e inspector
+        // Interfaz de usuario Dear ImGui
         editorUI.beginFrame();
         editorUI.render(scene);
         editorUI.endFrame();
 
-        // Intercambio de buffers y sondeo de eventos de ventana
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    // 8. Liberación ordenada de recursos
-    g_pickingFBO = nullptr;
-    scene.clear();
-    robotModel.reset();
-    editorUI.shutdown();
-    glfwDestroyWindow(window);
-    glfwTerminate();
-
+    // 6. Liberación ordenada de recursos
+    cleanup(window, editorUI, scene);
     return 0;
 }
 
