@@ -748,14 +748,28 @@ void EditorUI::renderPropertiesPanel(Scene& scene) {
     ImGui::Text("Modos de Visualizacion:");
     ImGui::Checkbox("Visible", &obj->visible);
     ImGui::Checkbox("Alambre (Wireframe)", &obj->showWireframe);
+
     ImGui::Checkbox("Vertices (Puntos)", &obj->showVertices);
     if (obj->showVertices) {
         ImGui::Indent();
         ImGui::SliderFloat("Tamaño Puntos", &m_pointSize, 2.0f, 20.0f, "%.1f px");
+        ImGui::ColorEdit3("Color Puntos", glm::value_ptr(scene.getDebugPalette().vertices));
         ImGui::Unindent();
     }
+
     ImGui::Checkbox("Mostrar Normales", &obj->showNormals);
+    if (obj->showNormals) {
+        ImGui::Indent();
+        ImGui::ColorEdit3("Color Normales", glm::value_ptr(scene.getDebugPalette().normals));
+        ImGui::Unindent();
+    }
+
     ImGui::Checkbox("Bounding Box", &obj->showBoundingBox);
+    if (obj->showBoundingBox) {
+        ImGui::Indent();
+        ImGui::ColorEdit3("Color Bounding Box", glm::value_ptr(scene.getDebugPalette().boundingBox));
+        ImGui::Unindent();
+    }
 
     // Botón para eliminar entidad individual
     ImGui::Spacing();

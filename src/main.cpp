@@ -109,11 +109,10 @@ int main(int argc, char* argv[]) {
     // 6. Configuración de la Escena y carga de entidades iniciales (INT-02)
     Scene scene;
 
-    // A. Modelo OBJ cargado desde disco mediante TinyObjLoader
-    auto cubeModel = std::make_shared<Model>("assets/models/cube.obj");
-    auto cubeObj = scene.addObject("Cubo OBJ", cubeModel);
-    cubeObj->transform.position = glm::vec3(-2.2f, 0.0f, 0.0f);
-    cubeObj->color = glm::vec4(0.2f, 0.7f, 0.95f, 1.0f);
+    // A. Modelo OBJ Multi-Mallado para demostración de Selección Local (6 sub-mallados)
+    auto robotModel = std::make_shared<Model>("assets/models/robot.obj");
+    auto robotObj = scene.addObject("Droide (Multi-Malla)", robotModel);
+    robotObj->transform.position = glm::vec3(-2.2f, 0.0f, 0.0f);
 
     // B. Primitivas matemáticas procedimentales (Dev A)
     auto sphereModel = Primitives::createSphere(0.85f, 32, 16);
@@ -136,6 +135,7 @@ int main(int argc, char* argv[]) {
                 return 1;
             }
             std::cout << "[TEST] Probando Scene::clear()..." << std::endl;
+            size_t initialCount = scene.getObjects().size();
             scene.clear();
             if (!scene.getObjects().empty()) {
                 std::cerr << "[TEST FAIL] Scene::clear() no vacio la lista de objetos." << std::endl;
@@ -146,8 +146,8 @@ int main(int argc, char* argv[]) {
                 std::cerr << "[TEST FAIL] Error al deserializar: " << serializer.getLastError() << std::endl;
                 return 1;
             }
-            if (scene.getObjects().size() != 3) {
-                std::cerr << "[TEST FAIL] Se esperaban 3 objetos y hay " << scene.getObjects().size() << std::endl;
+            if (scene.getObjects().size() != initialCount) {
+                std::cerr << "[TEST FAIL] Se esperaban " << initialCount << " objetos y hay " << scene.getObjects().size() << std::endl;
                 return 1;
             }
             std::cout << "[TEST] Probando deserialize en assets/scenes/demo.scene..." << std::endl;
@@ -291,6 +291,30 @@ int main(int argc, char* argv[]) {
             }
         }
 
+        // 7.2.1 Marcado visual del sub-mallado seleccionado en Modo Local
+        if (editorUI.getSelectionMode() == SelectionMode::Local && editorUI.getSelectedSubMeshIndex() >= 0) {
+            auto selObj = scene.getObject(editorUI.getSelectedObjectId());
+            if (selObj && selObj->visible && selObj->model) {
+                int sIdx = editorUI.getSelectedSubMeshIndex();
+                const auto& subMeshes = selObj->model->getSubMeshes();
+                if (sIdx >= 0 && sIdx < static_cast<int>(subMeshes.size())) {
+                    const auto& sm = subMeshes[sIdx];
+                    debugShader.use();
+                    debugShader.setMat4("projection", projection);
+                    debugShader.setMat4("view", view);
+                    debugShader.setMat4("model", selObj->getModelMatrix());
+                    debugShader.setVec4("debugColor", glm::vec4(0.18f, 0.76f, 0.98f, 1.0f)); // Contorno cian eléctrico
+
+                    glEnable(GL_POLYGON_OFFSET_LINE);
+                    glPolygonOffset(-2.0f, -2.0f);
+                    glLineWidth(2.5f);
+                    sm.mesh.draw(DrawMode::Wireframe);
+                    glLineWidth(1.0f);
+                    glDisable(GL_POLYGON_OFFSET_LINE);
+                }
+            }
+        }
+
         // 7.3 Herramientas de Inspección Geométrica Avanzada (REQ-A8: Normales, Vértices, Bounding Box)
         scene.renderDebug(debugShader, view, projection, editorUI.getPointSize());
 
@@ -307,7 +331,7 @@ int main(int argc, char* argv[]) {
     // 8. Liberación ordenada de recursos
     g_pickingFBO = nullptr;
     scene.clear();
-    cubeModel.reset();
+    robotModel.reset();
     editorUI.shutdown();
     glfwDestroyWindow(window);
     glfwTerminate();

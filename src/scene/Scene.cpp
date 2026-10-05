@@ -18,7 +18,11 @@ glm::mat4 Transform::getMatrix() const {
 SceneObject::SceneObject(unsigned int id, const std::string& name, std::shared_ptr<Model> model)
     : id(id), name(name), model(std::move(model)) {
     if (this->model && !this->model->getSubMeshes().empty()) {
-        color = this->model->getSubMeshes()[0].diffuseColor;
+        if (this->model->getSubMeshes().size() == 1) {
+            color = this->model->getSubMeshes()[0].diffuseColor;
+        } else {
+            color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        }
     }
 }
 
@@ -108,14 +112,20 @@ void Scene::render(Shader& shader, const glm::mat4& view, const glm::mat4& proje
         }
 
         shader.setMat4("model", obj->getModelMatrix());
-        shader.setVec4("objectColor", obj->color);
 
         DrawMode mode = DrawMode::Fill;
         if (obj->showWireframe) {
             mode = DrawMode::Wireframe;
         }
 
-        obj->model->draw(mode);
+        const auto& subMeshes = obj->model->getSubMeshes();
+        for (const auto& sm : subMeshes) {
+            glm::vec4 effectiveColor = (subMeshes.size() == 1)
+                                       ? obj->color
+                                       : (sm.diffuseColor * obj->color);
+            shader.setVec4("objectColor", effectiveColor);
+            sm.mesh.draw(mode);
+        }
     }
 }
 
@@ -215,7 +225,7 @@ void Scene::renderDebug(Shader& debugShader, const glm::mat4& view, const glm::m
         // 1. Visualizar Normales Vectoriales (GL_LINES con debug.vert / debug.frag)
         if (obj->showNormals) {
             debugShader.setMat4("model", modelMat);
-            debugShader.setVec4("debugColor", glm::vec4(0.0f, 0.9f, 1.0f, 1.0f)); // Cian brillante
+            debugShader.setVec4("debugColor", m_debugPalette.normals);
             glLineWidth(2.0f);
             for (const auto& sm : subMeshes) {
                 sm.mesh.drawNormals();
@@ -226,7 +236,7 @@ void Scene::renderDebug(Shader& debugShader, const glm::mat4& view, const glm::m
         // 2. Visualizar Nube de Puntos de Vértices (GL_POINTS con glPointSize configurable)
         if (obj->showVertices) {
             debugShader.setMat4("model", modelMat);
-            debugShader.setVec4("debugColor", glm::vec4(1.0f, 0.95f, 0.15f, 1.0f)); // Amarillo brillante
+            debugShader.setVec4("debugColor", m_debugPalette.vertices);
             debugShader.setFloat("pointSize", pointSize);
 
             glPointSize(pointSize);
@@ -297,7 +307,7 @@ void Scene::renderDebug(Shader& debugShader, const glm::mat4& view, const glm::m
             };
 
             debugShader.setMat4("model", glm::mat4(1.0f));
-            debugShader.setVec4("debugColor", glm::vec4(0.15f, 1.0f, 0.35f, 1.0f)); // Verde lima brillante
+            debugShader.setVec4("debugColor", m_debugPalette.boundingBox);
 
             glBindVertexArray(m_debugLinesVAO);
             glBindBuffer(GL_ARRAY_BUFFER, m_debugLinesVBO);

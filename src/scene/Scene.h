@@ -72,6 +72,15 @@ struct TriangleHit {
 };
 
 /**
+ * @brief Paleta de colores armónica para herramientas de inspección geométrica.
+ */
+struct DebugPalette {
+    glm::vec4 normals{0.12f, 0.65f, 0.95f, 1.0f};     // Azul cian tecnológico (#1FA6F2)
+    glm::vec4 vertices{1.0f, 0.62f, 0.10f, 1.0f};     // Ámbar dorado cálido (#FF9E1A)
+    glm::vec4 boundingBox{0.22f, 0.85f, 0.52f, 1.0f}; // Verde menta técnico CAD (#38D985)
+};
+
+/**
  * @brief Gestor principal de la escena 3D.
  */
 class Scene {
@@ -94,6 +103,10 @@ public:
 
     glm::vec4& getBackgroundColor() { return m_backgroundColor; }
     const glm::vec4& getBackgroundColor() const { return m_backgroundColor; }
+
+    // Paleta de colores de inspección geométrica
+    DebugPalette& getDebugPalette() { return m_debugPalette; }
+    const DebugPalette& getDebugPalette() const { return m_debugPalette; }
 
     // Actualización de estado y lógica temporal de la escena
     void update(float dt);
@@ -120,6 +133,7 @@ private:
     unsigned int m_nextId{1}; // Asignación correlativa de IDs unívocos
     DirectionalLight m_light;
     glm::vec4 m_backgroundColor{0.12f, 0.12f, 0.14f, 1.0f};
+    DebugPalette m_debugPalette;
 
     // Tabla de correspondencia para selección en Modo Triángulo
     std::vector<TriangleHit> m_triangleLookup;
