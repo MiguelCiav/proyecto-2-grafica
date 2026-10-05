@@ -2,9 +2,75 @@
 #include <tiny_obj_loader.h>
 #include <filesystem>
 #include <iostream>
+#include <limits>
+#include <algorithm>
 
 Model::Model(const std::string& filepath) {
     loadFromFile(filepath);
+}
+
+
+void Model::normalizeModel(tinyobj::attrib_t& attrib){
+    
+    if(attrib.vertices.empty()) return;
+
+    glm::vec3 minBound(std::numeric_limits<float>::max());
+    glm::vec3 maxBound(-std::numeric_limits<float>::max());
+
+    for (size_t i = 0; i < attrib.vertices.size(); i += 3) {
+        glm::vec3 pos(attrib.vertices[i], attrib.vertices[i + 1], attrib.vertices[i + 2]);
+        minBound = glm::min(minBound, pos);
+        maxBound = glm::max(maxBound, pos);
+    }
+
+    glm::vec3 center = (minBound + maxBound) * 0.5f;
+    glm::vec3 extents = maxBound - minBound;
+    float maxDim = std::max(extents.x, std::max(extents.y, extents.z));
+    float scale = (maxDim > 1e-6f) ? (2.0f / maxDim) : 1.0f;
+
+    for (size_t i = 0; i < attrib.vertices.size(); i += 3) {
+        attrib.vertices[i] = (attrib.vertices[i] - center.x) * scale;
+        attrib.vertices[i + 1] = (attrib.vertices[i + 1] - center.y) * scale;
+        attrib.vertices[i + 2] = (attrib.vertices[i + 2] - center.z) * scale;
+    }
+
+    m_minBound = (minBound - center) * scale;
+    m_maxBound = (maxBound - center) * scale;
+}
+
+std::vector<glm::vec3> Model::computeAverageNormals(const tinyobj::attrib_t& attrib, const std::vector<tinyobj::shape_t>& shapes){
+    
+    size_t numPositions = attrib.vertices.size()/3;
+    std::vector<glm::vec3> computedNormals(numPositions, glm::vec3(0.0f));
+
+    for (const auto& s : shapes) {
+        for (size_t f = 0; f < s.mesh.indices.size(); f += 3) {
+            int i0 = s.mesh.indices[f + 0].vertex_index;
+            int i1 = s.mesh.indices[f + 1].vertex_index;
+            int i2 = s.mesh.indices[f + 2].vertex_index;
+            if (i0 < 0 || i1 < 0 || i2 < 0) continue;
+            glm::vec3 v0(attrib.vertices[3 * i0 + 0], attrib.vertices[3 * i0 + 1], attrib.vertices[3 * i0 + 2]);
+            glm::vec3 v1(attrib.vertices[3 * i1 + 0], attrib.vertices[3 * i1 + 1], attrib.vertices[3 * i1 + 2]);
+            glm::vec3 v2(attrib.vertices[3 * i2 + 0], attrib.vertices[3 * i2 + 1], attrib.vertices[3 * i2 + 2]);
+            glm::vec3 edge1 = v1 - v0;
+            glm::vec3 edge2 = v2 - v0;
+            glm::vec3 faceNormal = glm::cross(edge1, edge2);
+            computedNormals[i0] += faceNormal;
+            computedNormals[i1] += faceNormal;
+            computedNormals[i2] += faceNormal;
+        }
+    }
+
+    for (size_t i = 0; i < computedNormals.size(); ++i) {
+        float len = glm::length(computedNormals[i]);
+        if (len > 1e-6f) {
+            computedNormals[i] /= len;
+        } else {
+            computedNormals[i] = glm::vec3(0.0f, 1.0f, 0.0f);
+        }
+    }
+
+    return computedNormals;
 }
 
 bool Model::loadFromFile(const std::string& filepath) {
@@ -30,6 +96,16 @@ bool Model::loadFromFile(const std::string& filepath) {
     if (!ret) {
         std::cerr << "[TinyObjLoader ERROR]: " << err << std::endl;
         return false;
+    }
+
+    // Normalizar modelo espacialmente (Centrado y acotado a [-1, 1])
+    normalizeModel(attrib);
+
+    // Comprobar si faltan normales y calcular normales promedio si es necesario
+    bool hasNormals = !attrib.normals.empty();
+    std::vector<glm::vec3> avgNormals;
+    if (!hasNormals) {
+        avgNormals = computeAverageNormals(attrib, shapes);
     }
 
     // Color difuso de reserva por defecto 
@@ -71,7 +147,12 @@ bool Model::loadFromFile(const std::string& filepath) {
                     attrib.normals[3 * idx.normal_index + 2]
                 );
             } else {
-                vertex.Normal = glm::vec3(0.0f, 1.0f, 0.0f);
+                vertex.Normal = avgNormals[idx.vertex_index];
+            }
+
+            // Asegurar que la normal sea unitaria
+            if (glm::length(vertex.Normal) > 1e-6f) {
+                vertex.Normal = glm::normalize(vertex.Normal);
             }
 
             // Coordenadas de textura (UV)
