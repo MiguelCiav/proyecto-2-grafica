@@ -5,9 +5,10 @@
 ```text
 ├── assets/
 │   ├── models/                  <- Archivos .obj y .mtl descargados o de prueba
+│   ├── scenes/                  <- Archivos de persistencia de escenas 3D (.scene)
 │   └── shaders/
-│       ├── default.vert         <- Vertex Shader con modelo de iluminación
-│       ├── default.frag         <- Fragment Shader Lambert + Alfa
+│       ├── base.vert            <- Vertex Shader con modelo de iluminación
+│       ├── base.frag            <- Fragment Shader Lambert + Alfa
 │       ├── picking.vert         <- Shader para renderizar IDs únicos a color
 │       ├── picking.frag         <- Fragment Shader que codifica identificadores en RGB
 │       ├── debug.vert           <- Shader simple para Bounding Box, normales y vértices
@@ -37,8 +38,9 @@
 
 * **`assets/`**: Almacena los recursos estáticos del proyecto. CMake copia automáticamente esta carpeta junto al ejecutable final.
   * **`models/`**: Modelos 3D en formato `.obj` junto con sus archivos de materiales `.mtl`.
+  * **`scenes/`**: Archivos de escenas guardadas (`.scene`) que contienen la definición completa del entorno, entidades y materiales.
   * **`shaders/`**: Programas GLSL (OpenGL Shading Language) empleados en las distintas pasadas de renderizado:
-    * `default.vert` / `default.frag`: Shaders principales para renderizado con iluminación Lambert y canal alfa.
+    * `base.vert` / `base.frag`: Shaders principales para renderizado con iluminación Lambert y canal alfa.
     * `picking.vert` / `picking.frag`: Shaders para selección mediante color (Color Picking), codificando IDs de objetos o triángulos en colores RGB.
     * `debug.vert` / `debug.frag`: Shaders utilitarios para dibujar cajas delimitadoras (Bounding Boxes), normales y vértices.
 * **`external/glad/`**: Código fuente y cabeceras de GLAD configurado para OpenGL 3.3 Core Profile.
