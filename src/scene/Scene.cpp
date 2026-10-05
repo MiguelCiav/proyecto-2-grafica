@@ -65,6 +65,10 @@ std::shared_ptr<SceneObject> Scene::addObject(const std::string& name, std::shar
 }
 
 bool Scene::removeObject(unsigned int id) {
+    if (selectedObjectID == id) {
+        selectObject(0);
+    }
+
     auto it = std::remove_if(m_objects.begin(), m_objects.end(),
         [id](const std::shared_ptr<SceneObject>& obj) {
             return obj && obj->id == id;
@@ -86,10 +90,22 @@ std::shared_ptr<SceneObject> Scene::getObject(unsigned int id) {
     return nullptr;
 }
 
+void Scene::selectObject(unsigned int newId) {
+    if (selectedObjectID != newId) {
+        if (auto prevObj = getObject(selectedObjectID)) {
+            prevObj->showBoundingBox = false;
+        }
+        selectedObjectID = newId;
+    }
+    if (auto newObj = getObject(selectedObjectID)) {
+        newObj->showBoundingBox = true;
+    }
+}
+
 void Scene::clear() {
+    selectObject(0);
     m_objects.clear();
     m_nextId = 1;
-    selectedObjectID = 0;
 }
 
 void Scene::update(float dt) {

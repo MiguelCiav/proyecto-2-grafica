@@ -640,7 +640,7 @@ void EditorUI::renderSceneHierarchyPanel(Scene& scene) {
         ImGui::SameLine(ImGui::GetWindowWidth() - 115.0f);
         if (ImGui::SmallButton("Deseleccionar")) {
             m_selectedObjectId = 0;
-            scene.selectedObjectID = 0;
+            scene.selectObject(0);
             m_selectedSubMeshIndex = -1;
             m_selectedTriangleIndex = -1;
         }
@@ -682,7 +682,7 @@ void EditorUI::renderSceneHierarchyPanel(Scene& scene) {
         // Al hacer clic en el encabezado de la entidad (selección Global de la entidad)
         if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
             m_selectedObjectId = obj->id;
-            scene.selectedObjectID = obj->id;
+            scene.selectObject(obj->id);
             m_selectedSubMeshIndex = -1;
             m_selectedTriangleIndex = -1;
             m_selectionMode = SelectionMode::Global;
@@ -703,7 +703,7 @@ void EditorUI::renderSceneHierarchyPanel(Scene& scene) {
                                        ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoDragDrop,
                                        ImVec2(12, 12))) {
                     m_selectedObjectId = obj->id;
-                    scene.selectedObjectID = obj->id;
+                    scene.selectObject(obj->id);
                     m_selectedSubMeshIndex = static_cast<int>(s);
                     m_selectedTriangleIndex = -1;
                     m_selectionMode = SelectionMode::Local;
@@ -713,7 +713,7 @@ void EditorUI::renderSceneHierarchyPanel(Scene& scene) {
                 std::string smLabel = std::to_string(s) + ": " + sm.name;
                 if (ImGui::Selectable(smLabel.c_str(), isSubSelected)) {
                     m_selectedObjectId = obj->id;
-                    scene.selectedObjectID = obj->id;
+                    scene.selectObject(obj->id);
                     m_selectedSubMeshIndex = static_cast<int>(s);
                     m_selectedTriangleIndex = -1;
                     m_selectionMode = SelectionMode::Local;
@@ -776,7 +776,7 @@ void EditorUI::renderPrimitivesCreatorPanel(Scene& scene) {
             if (newModel) {
                 auto newObj = scene.addObject(name, newModel);
                 m_selectedObjectId = newObj->id;
-                scene.selectedObjectID = newObj->id;
+                scene.selectObject(newObj->id);
                 m_selectedSubMeshIndex = -1;
                 m_selectedTriangleIndex = -1;
             }
@@ -864,7 +864,7 @@ void EditorUI::renderLoadModelModal(Scene& scene) {
 
                             auto newObj = scene.addObject(entityName, newModel);
                             m_selectedObjectId = newObj->id;
-                            scene.selectedObjectID = newObj->id;
+                            scene.selectObject(newObj->id);
                             m_selectedSubMeshIndex = -1;
                             m_selectedTriangleIndex = -1;
 
@@ -925,7 +925,7 @@ void EditorUI::renderLoadModelModal(Scene& scene) {
 
                 auto newObj = scene.addObject(entityName, newModel);
                 m_selectedObjectId = newObj->id;
-                scene.selectedObjectID = newObj->id;
+                scene.selectObject(newObj->id);
                 m_selectedSubMeshIndex = -1;
                 m_selectedTriangleIndex = -1;
 
@@ -1090,7 +1090,6 @@ void EditorUI::renderPropertiesPanel(Scene& scene) {
     if (ImGui::Button("Eliminar Entidad", ImVec2(-1, 0))) {
         scene.removeObject(m_selectedObjectId);
         m_selectedObjectId = 0;
-        scene.selectedObjectID = 0;
         m_selectedSubMeshIndex = -1;
         m_selectedTriangleIndex = -1;
     }

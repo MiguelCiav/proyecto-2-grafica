@@ -138,13 +138,13 @@ void executePickingPass(Scene& scene, EditorUI& editorUI, Framebuffer& pickingFB
 
     // Aplicar selección en EditorUI y Scene según el modo activo
     if (editorUI.getSelectionMode() == SelectionMode::Global) {
-        scene.selectedObjectID = pickedID;
+        scene.selectObject(pickedID);
         editorUI.setSelectedObjectId(pickedID);
         editorUI.setSelectedSubMeshIndex(-1);
         editorUI.setSelectedTriangleIndex(-1);
     } else if (editorUI.getSelectionMode() == SelectionMode::Local) {
         if (pickedID == 0) {
-            scene.selectedObjectID = 0;
+            scene.selectObject(0);
             editorUI.setSelectedObjectId(0);
             editorUI.setSelectedSubMeshIndex(-1);
             editorUI.setSelectedTriangleIndex(-1);
@@ -152,26 +152,26 @@ void executePickingPass(Scene& scene, EditorUI& editorUI, Framebuffer& pickingFB
             unsigned int objId = 0;
             int subIdx = -1;
             Framebuffer::decodeLocalID(pickedID, objId, subIdx);
-            scene.selectedObjectID = objId;
+            scene.selectObject(objId);
             editorUI.setSelectedObjectId(objId);
             editorUI.setSelectedSubMeshIndex(subIdx);
             editorUI.setSelectedTriangleIndex(-1);
         }
     } else if (editorUI.getSelectionMode() == SelectionMode::Triangle) {
         if (pickedID == 0) {
-            scene.selectedObjectID = 0;
+            scene.selectObject(0);
             editorUI.setSelectedObjectId(0);
             editorUI.setSelectedSubMeshIndex(-1);
             editorUI.setSelectedTriangleIndex(-1);
         } else {
             TriangleHit hit;
             if (scene.getTriangleHit(pickedID, hit)) {
-                scene.selectedObjectID = hit.objectId;
+                scene.selectObject(hit.objectId);
                 editorUI.setSelectedObjectId(hit.objectId);
                 editorUI.setSelectedSubMeshIndex(hit.subMeshIndex);
                 editorUI.setSelectedTriangleIndex(hit.localTriangleIndex);
             } else {
-                scene.selectedObjectID = 0;
+                scene.selectObject(0);
                 editorUI.setSelectedObjectId(0);
                 editorUI.setSelectedSubMeshIndex(-1);
                 editorUI.setSelectedTriangleIndex(-1);

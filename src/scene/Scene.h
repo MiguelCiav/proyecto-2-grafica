@@ -114,7 +114,8 @@ public:
     // Entidad seleccionada
     unsigned int selectedObjectID{0};
     unsigned int getSelectedObjectId() const { return selectedObjectID; }
-    void setSelectedObjectId(unsigned int id) { selectedObjectID = id; }
+    void setSelectedObjectId(unsigned int id) { selectObject(id); }
+    void selectObject(unsigned int id);
 
     // Renderizado de todos los objetos activos
     void render(Shader& shader, const glm::mat4& view, const glm::mat4& projection);
