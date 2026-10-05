@@ -13,6 +13,9 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <cstring>
 #include <string>
+#include <filesystem>
+#include <algorithm>
+#include <iostream>
 
 EditorUI::~EditorUI() {
     shutdown();
@@ -93,6 +96,9 @@ void EditorUI::init(GLFWwindow* window) {
     // 4. Aplicar estados iniciales de OpenGL
     setDepthTest(m_depthTest);
     setCullFace(m_cullFace);
+
+    // 5. Escanear escenas disponibles en assets/scenes
+    refreshAvailableSceneFiles();
 
     m_initialized = true;
 }
@@ -187,6 +193,10 @@ void EditorUI::render(Scene& scene) {
     }
 
     ImGui::End();
+
+    // Diálogos emergentes modales (centrados en la ventana principal)
+    renderLoadSceneModal(scene);
+    renderSaveSceneModal(scene);
 }
 
 void EditorUI::renderPerformancePanel() {
@@ -229,64 +239,77 @@ void EditorUI::renderEnvironmentPanel(Scene& scene) {
     ImGui::PopStyleColor(3);
 }
 
+void EditorUI::refreshAvailableSceneFiles() {
+    m_availableSceneFiles.clear();
+    const std::string scenesDir = "assets/scenes";
+    try {
+        if (!std::filesystem::exists(scenesDir)) {
+            std::filesystem::create_directories(scenesDir);
+        }
+        for (const auto& entry : std::filesystem::directory_iterator(scenesDir)) {
+            if (entry.is_regular_file() && entry.path().extension() == ".scene") {
+                m_availableSceneFiles.push_back(entry.path().filename().string());
+            }
+        }
+        std::sort(m_availableSceneFiles.begin(), m_availableSceneFiles.end());
+    } catch (const std::exception& e) {
+        std::cerr << "[EditorUI WARN]: No se pudo listar assets/scenes: " << e.what() << std::endl;
+    }
+
+    if (m_availableSceneFiles.empty()) {
+        m_availableSceneFiles.push_back("default.scene");
+    }
+
+    if (m_selectedSceneIndex < 0 || m_selectedSceneIndex >= static_cast<int>(m_availableSceneFiles.size())) {
+        m_selectedSceneIndex = 0;
+    }
+}
+
 void EditorUI::renderPersistencePanel(Scene& scene) {
     ImGui::Text("Persistencia de Escena 3D:");
     ImGui::TextDisabled("Formato propio estructurado (.scene)");
     ImGui::Spacing();
 
-    ImGui::Text("Archivo de Escena:");
-    ImGui::InputText("##RutaEscena", m_sceneFilePathBuffer, sizeof(m_sceneFilePathBuffer));
-
-    ImGui::TextDisabled("Accesos rapidos:");
-    if (ImGui::SmallButton("default.scene")) {
-        std::strncpy(m_sceneFilePathBuffer, "assets/scenes/default.scene", sizeof(m_sceneFilePathBuffer) - 1);
-        m_sceneFilePathBuffer[sizeof(m_sceneFilePathBuffer) - 1] = '\0';
-    }
-    ImGui::SameLine();
-    if (ImGui::SmallButton("demo.scene")) {
-        std::strncpy(m_sceneFilePathBuffer, "assets/scenes/demo.scene", sizeof(m_sceneFilePathBuffer) - 1);
-        m_sceneFilePathBuffer[sizeof(m_sceneFilePathBuffer) - 1] = '\0';
-    }
-
+    size_t objCount = scene.getObjects().size();
+    ImGui::Text("Resumen de Escena Activa:");
+    ImGui::BulletText("Entidades en pantalla: %zu", objCount);
+    const auto& bg = scene.getBackgroundColor();
+    ImGui::BulletText("Color de fondo: (%.2f, %.2f, %.2f)", bg.r, bg.g, bg.b);
+    const auto& light = scene.getLight();
+    ImGui::BulletText("Luz Direccional: (%.2f, %.2f, %.2f)", light.direction.x, light.direction.y, light.direction.z);
+    
     ImGui::Spacing();
     ImGui::Separator();
     ImGui::Spacing();
 
-    // Botón Guardar Escena
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.45f, 0.28f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.24f, 0.58f, 0.36f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.14f, 0.36f, 0.22f, 1.0f));
-    if (ImGui::Button("Guardar Escena", ImVec2(-1, 0))) {
-        SceneSerializer serializer(scene);
-        if (serializer.serialize(m_sceneFilePathBuffer)) {
-            m_persistenceStatus = "Escena guardada correctamente en:\n" + std::string(m_sceneFilePathBuffer);
-            m_persistenceStatusIsError = false;
-        } else {
-            m_persistenceStatus = "Error al guardar:\n" + serializer.getLastError();
-            m_persistenceStatusIsError = true;
-        }
+    ImGui::Text("Acciones:");
+
+    // Botón para abrir la ventana emergente modal de Carga
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.38f, 0.62f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.24f, 0.48f, 0.78f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.14f, 0.30f, 0.50f, 1.0f));
+    if (ImGui::Button("Cargar Escena...", ImVec2(-1, 38))) {
+        refreshAvailableSceneFiles();
+        m_showLoadModal = true;
     }
     ImGui::PopStyleColor(3);
 
-    // Botón Cargar Escena
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.35f, 0.55f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.24f, 0.46f, 0.72f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.14f, 0.28f, 0.44f, 1.0f));
-    if (ImGui::Button("Cargar Escena", ImVec2(-1, 0))) {
-        SceneSerializer serializer(scene);
-        if (serializer.deserialize(m_sceneFilePathBuffer)) {
-            m_persistenceStatus = "Escena cargada y reconstruida desde:\n" + std::string(m_sceneFilePathBuffer);
-            m_persistenceStatusIsError = false;
-            m_selectedObjectId = 0;
-            m_selectedSubMeshIndex = -1;
-        } else {
-            m_persistenceStatus = "Error al cargar:\n" + serializer.getLastError();
-            m_persistenceStatusIsError = true;
-        }
+    ImGui::Spacing();
+
+    // Botón para abrir la ventana emergente modal de Guardado
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.48f, 0.32f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.24f, 0.60f, 0.40f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.14f, 0.38f, 0.25f, 1.0f));
+    if (ImGui::Button("Guardar Escena...", ImVec2(-1, 38))) {
+        refreshAvailableSceneFiles();
+        m_showSaveModal = true;
     }
     ImGui::PopStyleColor(3);
 
+    // Mensaje de estado de la última operación
     if (!m_persistenceStatus.empty()) {
+        ImGui::Spacing();
+        ImGui::Separator();
         ImGui::Spacing();
         if (m_persistenceStatusIsError) {
             ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.35f, 1.0f), "%s", m_persistenceStatus.c_str());
@@ -299,8 +322,247 @@ void EditorUI::renderPersistencePanel(Scene& scene) {
     ImGui::Separator();
     ImGui::Spacing();
 
-    ImGui::TextDisabled("Informacion:");
-    ImGui::TextWrapped("Almacena y restaura: jerarquia completa, mallas (.obj y procedimentales), transformaciones (P/R/S), color difuso, canal alfa, banderas de inspeccion, luces y color de fondo.");
+    // Sección colapsable para ruta manual externa
+    if (ImGui::CollapsingHeader("Ruta Manual Directa")) {
+        ImGui::InputText("Ruta", m_sceneFilePathBuffer, sizeof(m_sceneFilePathBuffer));
+        if (ImGui::Button("Cargar desde Ruta Manual", ImVec2(-1, 0))) {
+            SceneSerializer serializer(scene);
+            if (serializer.deserialize(m_sceneFilePathBuffer)) {
+                m_persistenceStatus = "Escena cargada desde:\n" + std::string(m_sceneFilePathBuffer);
+                m_persistenceStatusIsError = false;
+                m_selectedObjectId = 0;
+                m_selectedSubMeshIndex = -1;
+            } else {
+                m_persistenceStatus = "Error:\n" + serializer.getLastError();
+                m_persistenceStatusIsError = true;
+            }
+        }
+    }
+}
+
+void EditorUI::renderLoadSceneModal(Scene& scene) {
+    if (m_showLoadModal) {
+        ImGui::OpenPopup("Cargar Escena 3D##ModalDialog");
+        m_showLoadModal = false;
+    }
+
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(480, 380), ImGuiCond_Appearing);
+
+    if (ImGui::BeginPopupModal("Cargar Escena 3D##ModalDialog", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
+        ImGui::Text("Selecciona una escena para cargar en el viewport:");
+        ImGui::Spacing();
+
+        ImGui::TextDisabled("Directorio: assets/scenes/");
+        ImGui::SameLine(ImGui::GetWindowWidth() - 95.0f);
+        if (ImGui::SmallButton("Recargar")) {
+            refreshAvailableSceneFiles();
+        }
+
+        ImGui::Spacing();
+
+        // Lista interactiva desplazable con los archivos .scene
+        ImGui::BeginChild("FileListRegion", ImVec2(0, 190), true);
+        if (m_availableSceneFiles.empty()) {
+            ImGui::TextDisabled("No se encontraron archivos .scene en assets/scenes/");
+        } else {
+            for (int i = 0; i < static_cast<int>(m_availableSceneFiles.size()); ++i) {
+                const bool isSelected = (m_selectedSceneIndex == i);
+                std::string itemLabel = "  " + m_availableSceneFiles[i];
+
+                if (ImGui::Selectable(itemLabel.c_str(), isSelected, ImGuiSelectableFlags_AllowDoubleClick)) {
+                    m_selectedSceneIndex = i;
+
+                    // Doble clic para cargar de inmediato
+                    if (ImGui::IsMouseDoubleClicked(0)) {
+                        std::string loadPath = "assets/scenes/" + m_availableSceneFiles[i];
+                        SceneSerializer serializer(scene);
+                        if (serializer.deserialize(loadPath)) {
+                            m_persistenceStatus = "Escena cargada exitosamente desde:\n" + loadPath;
+                            m_persistenceStatusIsError = false;
+                            m_selectedObjectId = 0;
+                            m_selectedSubMeshIndex = -1;
+                        } else {
+                            m_persistenceStatus = "Error al cargar:\n" + serializer.getLastError();
+                            m_persistenceStatusIsError = true;
+                        }
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+
+                if (isSelected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+        }
+        ImGui::EndChild();
+
+        ImGui::Spacing();
+
+        // Archivo activo seleccionado
+        std::string selectedFilename = (m_selectedSceneIndex >= 0 && m_selectedSceneIndex < static_cast<int>(m_availableSceneFiles.size()))
+                                       ? m_availableSceneFiles[m_selectedSceneIndex]
+                                       : "";
+
+        if (!selectedFilename.empty()) {
+            ImGui::Text("Archivo seleccionado:");
+            ImGui::SameLine();
+            ImGui::TextColored(ImVec4(0.35f, 0.75f, 1.0f, 1.0f), "%s", selectedFilename.c_str());
+        } else {
+            ImGui::TextDisabled("Ningun archivo seleccionado.");
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        // Botones inferiores de acción
+        float buttonWidth = 140.0f;
+        float spacing = ImGui::GetWindowWidth() - (buttonWidth * 2.0f) - 30.0f;
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.38f, 0.62f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.24f, 0.48f, 0.78f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.14f, 0.30f, 0.50f, 1.0f));
+        bool canLoad = !selectedFilename.empty();
+        if (!canLoad) ImGui::BeginDisabled();
+
+        if (ImGui::Button("Cargar Escena", ImVec2(buttonWidth, 32))) {
+            std::string loadPath = "assets/scenes/" + selectedFilename;
+            SceneSerializer serializer(scene);
+            if (serializer.deserialize(loadPath)) {
+                m_persistenceStatus = "Escena cargada exitosamente desde:\n" + loadPath;
+                m_persistenceStatusIsError = false;
+                m_selectedObjectId = 0;
+                m_selectedSubMeshIndex = -1;
+            } else {
+                m_persistenceStatus = "Error al cargar:\n" + serializer.getLastError();
+                m_persistenceStatusIsError = true;
+            }
+            ImGui::CloseCurrentPopup();
+        }
+
+        if (!canLoad) ImGui::EndDisabled();
+        ImGui::PopStyleColor(3);
+
+        ImGui::SameLine(0, spacing > 10.0f ? spacing : 10.0f);
+
+        if (ImGui::Button("Cancelar", ImVec2(buttonWidth, 32))) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+void EditorUI::renderSaveSceneModal(Scene& scene) {
+    if (m_showSaveModal) {
+        ImGui::OpenPopup("Guardar Escena 3D##ModalDialog");
+        m_showSaveModal = false;
+    }
+
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(500, 390), ImGuiCond_Appearing);
+
+    if (ImGui::BeginPopupModal("Guardar Escena 3D##ModalDialog", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
+        ImGui::Text("Guardar estado actual de la escena en archivo .scene:");
+        ImGui::Spacing();
+
+        size_t objCount = scene.getObjects().size();
+        ImGui::Text("Entidades que se guardaran: %zu", objCount);
+        if (objCount == 0) {
+            ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f), "Aviso: la escena esta vacia (se guardara sin objetos).");
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        // 1. Guardar como nuevo archivo
+        ImGui::Text("Escribe el nombre del archivo:");
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 65.0f);
+        ImGui::InputText("##ModalNuevoNombre", m_newSceneFileNameBuffer, sizeof(m_newSceneFileNameBuffer));
+        ImGui::SameLine();
+        ImGui::Text(".scene");
+
+        ImGui::Spacing();
+
+        // 2. O elegir un archivo existente para sobrescribir
+        ImGui::TextDisabled("O selecciona uno existente para sobrescribirlo:");
+        const char* comboPreview = (m_selectedSceneIndex >= 0 && m_selectedSceneIndex < static_cast<int>(m_availableSceneFiles.size()))
+                                   ? m_availableSceneFiles[m_selectedSceneIndex].c_str()
+                                   : "Ninguno";
+        if (ImGui::BeginCombo("##ModalComboSobrescribir", comboPreview)) {
+            for (int i = 0; i < static_cast<int>(m_availableSceneFiles.size()); ++i) {
+                const bool isSelected = (m_selectedSceneIndex == i);
+                if (ImGui::Selectable(m_availableSceneFiles[i].c_str(), isSelected)) {
+                    m_selectedSceneIndex = i;
+                    std::string stem = m_availableSceneFiles[i];
+                    size_t extPos = stem.find(".scene");
+                    if (extPos != std::string::npos) {
+                        stem = stem.substr(0, extPos);
+                    }
+                    std::strncpy(m_newSceneFileNameBuffer, stem.c_str(), sizeof(m_newSceneFileNameBuffer) - 1);
+                    m_newSceneFileNameBuffer[sizeof(m_newSceneFileNameBuffer) - 1] = '\0';
+                }
+                if (isSelected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        std::string finalFilename = m_newSceneFileNameBuffer;
+        if (finalFilename.empty()) finalFilename = "nueva_escena";
+        if (finalFilename.find(".scene") == std::string::npos) {
+            finalFilename += ".scene";
+        }
+        std::string finalPath = "assets/scenes/" + finalFilename;
+
+        ImGui::Spacing();
+        ImGui::TextDisabled("Ruta de destino: %s", finalPath.c_str());
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        // Botones inferiores
+        float buttonWidth = 140.0f;
+        float spacing = ImGui::GetWindowWidth() - (buttonWidth * 2.0f) - 30.0f;
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.48f, 0.32f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.24f, 0.60f, 0.40f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.14f, 0.38f, 0.25f, 1.0f));
+
+        if (ImGui::Button("Guardar Escena", ImVec2(buttonWidth, 32))) {
+            SceneSerializer serializer(scene);
+            if (serializer.serialize(finalPath)) {
+                m_persistenceStatus = "Escena guardada correctamente en:\n" + finalPath;
+                m_persistenceStatusIsError = false;
+                refreshAvailableSceneFiles();
+                for (size_t i = 0; i < m_availableSceneFiles.size(); ++i) {
+                    if (m_availableSceneFiles[i] == finalFilename) {
+                        m_selectedSceneIndex = static_cast<int>(i);
+                        break;
+                    }
+                }
+            } else {
+                m_persistenceStatus = "Error al guardar:\n" + serializer.getLastError();
+                m_persistenceStatusIsError = true;
+            }
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::PopStyleColor(3);
+
+        ImGui::SameLine(0, spacing > 10.0f ? spacing : 10.0f);
+
+        if (ImGui::Button("Cancelar", ImVec2(buttonWidth, 32))) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
 }
 
 void EditorUI::renderSceneHierarchyPanel(Scene& scene) {
