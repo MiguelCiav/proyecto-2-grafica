@@ -85,6 +85,12 @@ std::shared_ptr<SceneObject> Scene::getObject(unsigned int id) {
 void Scene::clear() {
     m_objects.clear();
     m_nextId = 1;
+    selectedObjectID = 0;
+}
+
+void Scene::update(float dt) {
+    (void)dt;
+    // Punto de extensión para animaciones, dinámicas temporales o transformaciones continuas
 }
 
 void Scene::render(Shader& shader, const glm::mat4& view, const glm::mat4& projection) {

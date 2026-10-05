@@ -235,6 +235,8 @@ void EditorUI::renderEnvironmentPanel(Scene& scene) {
     if (ImGui::Button("Limpiar Escena Completa", ImVec2(-1, 0))) {
         scene.clear();
         m_selectedObjectId = 0;
+        m_selectedSubMeshIndex = -1;
+        m_selectedTriangleIndex = -1;
     }
     ImGui::PopStyleColor(3);
 }
@@ -594,6 +596,7 @@ void EditorUI::renderSceneHierarchyPanel(Scene& scene) {
 
         if (ImGui::Selectable(label.c_str(), isSelected)) {
             m_selectedObjectId = obj->id;
+            scene.selectedObjectID = obj->id;
             m_selectedSubMeshIndex = -1;
             m_selectedTriangleIndex = -1;
         }
@@ -650,6 +653,9 @@ void EditorUI::renderPrimitivesCreatorPanel(Scene& scene) {
             if (newModel) {
                 auto newObj = scene.addObject(name, newModel);
                 m_selectedObjectId = newObj->id;
+                scene.selectedObjectID = newObj->id;
+                m_selectedSubMeshIndex = -1;
+                m_selectedTriangleIndex = -1;
             }
         }
     }
@@ -759,6 +765,7 @@ void EditorUI::renderPropertiesPanel(Scene& scene) {
     if (ImGui::Button("Eliminar Entidad", ImVec2(-1, 0))) {
         scene.removeObject(m_selectedObjectId);
         m_selectedObjectId = 0;
+        scene.selectedObjectID = 0;
         m_selectedSubMeshIndex = -1;
         m_selectedTriangleIndex = -1;
     }
