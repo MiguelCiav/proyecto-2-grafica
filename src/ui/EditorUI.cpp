@@ -722,7 +722,7 @@ void EditorUI::renderPropertiesPanel(Scene& scene) {
             if (m_selectedTriangleIndex < static_cast<int>(sm.mesh.getTriangleCount())) {
                 glm::vec3 v0(0.0f), v1(0.0f), v2(0.0f);
                 if (sm.mesh.isIndexed()) {
-                    unsigned int i0 = sm.mesh.indices[m_selectedTriangleIndex * 3 + 0];
+                    unsigned int i0 = sm.mesh.indices[m_selectedTriangleIndex * 3 ];
                     unsigned int i1 = sm.mesh.indices[m_selectedTriangleIndex * 3 + 1];
                     unsigned int i2 = sm.mesh.indices[m_selectedTriangleIndex * 3 + 2];
                     v0 = sm.mesh.vertices[i0].Position;
@@ -730,7 +730,7 @@ void EditorUI::renderPropertiesPanel(Scene& scene) {
                     v2 = sm.mesh.vertices[i2].Position;
                     ImGui::Text("Indices: [%u, %u, %u]", i0, i1, i2);
                 } else if (!sm.mesh.vertices.empty()) {
-                    v0 = sm.mesh.vertices[m_selectedTriangleIndex * 3 + 0].Position;
+                    v0 = sm.mesh.vertices[m_selectedTriangleIndex * 3 ].Position;
                     v1 = sm.mesh.vertices[m_selectedTriangleIndex * 3 + 1].Position;
                     v2 = sm.mesh.vertices[m_selectedTriangleIndex * 3 + 2].Position;
                 }

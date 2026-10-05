@@ -25,11 +25,11 @@ Mesh createCubeMesh(float size) {
         vertices.push_back(Vertex{v3, normal, glm::vec2(0.0f, 1.0f)});
 
         // Dos triángulos en sentido antihorario (CCW)
-        indices.push_back(baseIdx + 0);
+        indices.push_back(baseIdx );
         indices.push_back(baseIdx + 1);
         indices.push_back(baseIdx + 2);
 
-        indices.push_back(baseIdx + 0);
+        indices.push_back(baseIdx );
         indices.push_back(baseIdx + 2);
         indices.push_back(baseIdx + 3);
     };
@@ -93,11 +93,11 @@ Mesh createPyramidMesh(float base, float height) {
     vertices.push_back(Vertex{bFrontRight, downNormal, glm::vec2(1.0f, 1.0f)});
     vertices.push_back(Vertex{bFrontLeft,  downNormal, glm::vec2(0.0f, 1.0f)});
 
-    indices.push_back(baseStart + 0);
+    indices.push_back(baseStart );
     indices.push_back(baseStart + 1);
     indices.push_back(baseStart + 2);
 
-    indices.push_back(baseStart + 0);
+    indices.push_back(baseStart );
     indices.push_back(baseStart + 2);
     indices.push_back(baseStart + 3);
 
@@ -112,7 +112,7 @@ Mesh createPyramidMesh(float base, float height) {
         vertices.push_back(Vertex{v1, normal, glm::vec2(1.0f, 0.0f)});
         vertices.push_back(Vertex{v2, normal, glm::vec2(0.5f, 1.0f)});
 
-        indices.push_back(idx + 0);
+        indices.push_back(idx );
         indices.push_back(idx + 1);
         indices.push_back(idx + 2);
     };
@@ -249,7 +249,7 @@ Mesh createCylinderMesh(float radius, float height, unsigned int sectors) {
         vertices.push_back(Vertex{
             glm::vec3(radius * c, hh, radius * s),
             topNormal,
-            glm::vec2(0.5f + 0.5f * c, 0.5f + 0.5f * s)
+            glm::vec2(0.5f .5f * c, 0.5f .5f * s)
         });
     }
 
@@ -272,7 +272,7 @@ Mesh createCylinderMesh(float radius, float height, unsigned int sectors) {
         vertices.push_back(Vertex{
             glm::vec3(radius * c, -hh, radius * s),
             botNormal,
-            glm::vec2(0.5f + 0.5f * c, 0.5f + 0.5f * s)
+            glm::vec2(0.5f .5f * c, 0.5f .5f * s)
         });
     }
 
