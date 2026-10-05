@@ -77,7 +77,7 @@ struct TriangleHit {
 class Scene {
 public:
     Scene();
-    ~Scene() = default;
+    ~Scene();
 
     // Gestión de entidades
     std::shared_ptr<SceneObject> addObject(const std::string& name, std::shared_ptr<Model> model);
@@ -101,6 +101,9 @@ public:
     // Renderizado para selección por color (Color Picking en FBO)
     void renderForPicking(Shader& shader, const glm::mat4& view, const glm::mat4& projection, SelectionMode mode);
 
+    // Renderizado de herramientas de inspección geométrica (Normales, Vértices, Bounding Box) (REQ-A8)
+    void renderDebug(Shader& debugShader, const glm::mat4& view, const glm::mat4& projection, float pointSize = 6.0f);
+
     // Consulta de correspondencia de triángulo por su ID global de picking
     bool getTriangleHit(unsigned int globalTriangleId, TriangleHit& outHit) const;
 
@@ -112,4 +115,9 @@ private:
 
     // Tabla de correspondencia para selección en Modo Triángulo
     std::vector<TriangleHit> m_triangleLookup;
+
+    // Buffers dinámicos de OpenGL para dibujo de líneas de depuración (AABB)
+    unsigned int m_debugLinesVAO{0};
+    unsigned int m_debugLinesVBO{0};
+    void initDebugBuffers();
 };

@@ -45,6 +45,10 @@ public:
     int getSelectedTriangleIndex() const { return m_selectedTriangleIndex; }
     void setSelectedTriangleIndex(int index) { m_selectedTriangleIndex = index; }
 
+    // Parámetros de inspección geométrica (REQ-A8)
+    float getPointSize() const { return m_pointSize; }
+    void setPointSize(float size) { m_pointSize = size; }
+
 private:
 
     bool m_initialized{false};
@@ -52,6 +56,9 @@ private:
     // Estados configurables de renderizado
     bool m_depthTest{true};
     bool m_cullFace{false};
+
+    // Parámetros de inspección geométrica
+    float m_pointSize{6.0f};
 
     // Entidad, sub-mallado y triángulo actualmente seleccionados en el inspector
     SelectionMode m_selectionMode{SelectionMode::Global};

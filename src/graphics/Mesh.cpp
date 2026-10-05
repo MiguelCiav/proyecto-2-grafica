@@ -15,11 +15,17 @@ Mesh::Mesh(Mesh&& other) noexcept
       indices(std::move(other.indices)),
       m_VAO(other.m_VAO),
       m_VBO(other.m_VBO),
-      m_EBO(other.m_EBO) {
+      m_EBO(other.m_EBO),
+      m_normalsVAO(other.m_normalsVAO),
+      m_normalsVBO(other.m_normalsVBO),
+      m_normalsCount(other.m_normalsCount) {
     // Anulamos los identificadores en el objeto movido para evitar que su destructor los libere en GPU
     other.m_VAO = 0;
     other.m_VBO = 0;
     other.m_EBO = 0;
+    other.m_normalsVAO = 0;
+    other.m_normalsVBO = 0;
+    other.m_normalsCount = 0;
 }
 
 Mesh& Mesh::operator=(Mesh&& other) noexcept {
@@ -33,10 +39,16 @@ Mesh& Mesh::operator=(Mesh&& other) noexcept {
         m_VAO = other.m_VAO;
         m_VBO = other.m_VBO;
         m_EBO = other.m_EBO;
+        m_normalsVAO = other.m_normalsVAO;
+        m_normalsVBO = other.m_normalsVBO;
+        m_normalsCount = other.m_normalsCount;
 
         other.m_VAO = 0;
         other.m_VBO = 0;
         other.m_EBO = 0;
+        other.m_normalsVAO = 0;
+        other.m_normalsVBO = 0;
+        other.m_normalsCount = 0;
     }
     return *this;
 }
@@ -86,6 +98,44 @@ void Mesh::setupMesh() {
     // NOTA: No desenlazar GL_ELEMENT_ARRAY_BUFFER antes de glBindVertexArray(0),
     // ya que el VAO guarda activamente la asociación al EBO.
     glBindVertexArray(0);
+
+    // 7. Generar buffer de líneas de normales para inspección de depuración (REQ-A8)
+    if (!vertices.empty()) {
+        std::vector<glm::vec3> normalLines;
+        normalLines.reserve(vertices.size() * 2);
+        const float normalLength = 0.12f;
+
+        for (const auto& v : vertices) {
+            glm::vec3 n = v.Normal;
+            float len = glm::length(n);
+            if (len > 1e-5f) {
+                n /= len;
+            } else {
+                n = glm::vec3(0.0f, 1.0f, 0.0f);
+            }
+
+            // Cada normal se representa como un segmento desde el vértice hacia afuera
+            normalLines.push_back(v.Position);
+            normalLines.push_back(v.Position + n * normalLength);
+        }
+
+        m_normalsCount = normalLines.size();
+
+        glGenVertexArrays(1, &m_normalsVAO);
+        glGenBuffers(1, &m_normalsVBO);
+
+        glBindVertexArray(m_normalsVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, m_normalsVBO);
+        glBufferData(GL_ARRAY_BUFFER,
+                     normalLines.size() * sizeof(glm::vec3),
+                     normalLines.data(),
+                     GL_STATIC_DRAW);
+
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+
+        glBindVertexArray(0);
+    }
 }
 
 void Mesh::draw(DrawMode mode) const {
@@ -154,7 +204,24 @@ void Mesh::drawTriangle(unsigned int triangleIndex, DrawMode mode) const {
     }
 }
 
+void Mesh::drawNormals() const {
+    if (m_normalsVAO == 0 || m_normalsCount == 0) return;
+    glBindVertexArray(m_normalsVAO);
+    glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(m_normalsCount));
+    glBindVertexArray(0);
+}
+
 void Mesh::cleanup() {
+    if (m_normalsVBO != 0) {
+        glDeleteBuffers(1, &m_normalsVBO);
+        m_normalsVBO = 0;
+    }
+    if (m_normalsVAO != 0) {
+        glDeleteVertexArrays(1, &m_normalsVAO);
+        m_normalsVAO = 0;
+    }
+    m_normalsCount = 0;
+
     if (m_EBO != 0) {
         glDeleteBuffers(1, &m_EBO);
         m_EBO = 0;
