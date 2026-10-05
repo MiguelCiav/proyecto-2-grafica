@@ -163,32 +163,48 @@ void EditorUI::render(Scene& scene) {
 
     ImGui::Begin("Panel del Editor", nullptr, windowFlags);
 
+    // 1. Barra Superior Fija: Métricas de Rendimiento (FPS) y Ayuda de Controles
+    renderTopBar();
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // 2. Sistema de 2 Pestañas: Escena y Figuras (Opción B)
     if (ImGui::BeginTabBar("EditorTabBar")) {
-        // Pestaña 1: Jerarquía e Inspector de Entidades
+        // Pestaña 1: Escena (Gestión global, entorno, render, jerarquía e inspector)
         if (ImGui::BeginTabItem("Escena")) {
+            renderPersistencePanel(scene);
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            renderRenderSettingsPanel();
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            renderEnvironmentPanel(scene);
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
             renderSceneHierarchyPanel(scene);
+            ImGui::Spacing();
             ImGui::Separator();
-            renderPrimitivesCreatorPanel(scene);
-            ImGui::Separator();
-            renderModelImporterPanel(scene);
-            ImGui::Separator();
+            ImGui::Spacing();
+
             renderPropertiesPanel(scene);
             ImGui::EndTabItem();
         }
 
-        // Pestaña 2: Ajustes de Render, Entorno y Rendimiento
-        if (ImGui::BeginTabItem("Ajustes")) {
-            renderPerformancePanel();
+        // Pestaña 2: Figuras (Añadir primitivas e importar modelos 3D)
+        if (ImGui::BeginTabItem("Figuras")) {
+            renderPrimitivesCreatorPanel(scene);
+            ImGui::Spacing();
             ImGui::Separator();
-            renderRenderSettingsPanel();
-            ImGui::Separator();
-            renderEnvironmentPanel(scene);
-            ImGui::EndTabItem();
-        }
+            ImGui::Spacing();
 
-        // Pestaña 3: Archivo y Persistencia de Escena
-        if (ImGui::BeginTabItem("Archivo")) {
-            renderPersistencePanel(scene);
+            renderModelImporterPanel(scene);
             ImGui::EndTabItem();
         }
 
@@ -203,11 +219,40 @@ void EditorUI::render(Scene& scene) {
     renderLoadModelModal(scene);
 }
 
-void EditorUI::renderPerformancePanel() {
+void EditorUI::renderTopBar() {
     ImGuiIO& io = ImGui::GetIO();
-    ImGui::Text("Rendimiento:");
-    ImGui::Text("  FPS: %.1f", io.Framerate);
-    ImGui::Text("  Frametime: %.3f ms", 1000.0f / (io.Framerate > 0.0f ? io.Framerate : 1.0f));
+    float fps = io.Framerate;
+    float ms = 1000.0f / (fps > 0.0f ? fps : 1.0f);
+
+    // Indicador dinámico de rendimiento por color
+    ImVec4 fpsColor = (fps >= 45.0f) ? ImVec4(0.35f, 0.95f, 0.45f, 1.0f)
+                    : (fps >= 25.0f) ? ImVec4(1.0f, 0.85f, 0.2f, 1.0f)
+                                     : ImVec4(1.0f, 0.35f, 0.35f, 1.0f);
+
+    ImGui::TextColored(fpsColor, "%.0f FPS", fps);
+    ImGui::SameLine();
+    ImGui::TextDisabled("| %.2f ms", ms);
+
+    // Botón de ayuda emergente con controles de navegación
+    ImGui::SameLine(ImGui::GetWindowWidth() - 85.0f);
+    if (ImGui::SmallButton("Ayuda (?)")) {
+        ImGui::OpenPopup("GuiaControlesPopup");
+    }
+
+    if (ImGui::BeginPopup("GuiaControlesPopup")) {
+        ImGui::TextColored(ImVec4(0.35f, 0.75f, 1.0f, 1.0f), "Controles de Navegacion:");
+        ImGui::Separator();
+        ImGui::BulletText("WASD: Desplazar camara");
+        ImGui::BulletText("Espacio / Shift: Subir / Bajar");
+        ImGui::BulletText("Click Derecho + Mouse: Rotar camara");
+        ImGui::BulletText("Click Izquierdo: Seleccionar en escena");
+        ImGui::BulletText("Scroll: Zoom");
+        ImGui::EndPopup();
+    }
+}
+
+void EditorUI::renderPerformancePanel() {
+    renderTopBar();
 }
 
 void EditorUI::renderRenderSettingsPanel() {
@@ -305,41 +350,30 @@ void EditorUI::refreshAvailableModelFiles() {
 }
 
 void EditorUI::renderPersistencePanel(Scene& scene) {
-    ImGui::Text("Persistencia de Escena 3D:");
-    ImGui::TextDisabled("Formato propio estructurado (.scene)");
+    (void)scene;
+    ImGui::Text("Archivo de Escena (.scene):");
     ImGui::Spacing();
 
-    size_t objCount = scene.getObjects().size();
-    ImGui::Text("Resumen de Escena Activa:");
-    ImGui::BulletText("Entidades en pantalla: %zu", objCount);
-    const auto& bg = scene.getBackgroundColor();
-    ImGui::BulletText("Color de fondo: (%.2f, %.2f, %.2f)", bg.r, bg.g, bg.b);
-    const auto& light = scene.getLight();
-    ImGui::BulletText("Luz Direccional: (%.2f, %.2f, %.2f)", light.direction.x, light.direction.y, light.direction.z);
-    
-    ImGui::Spacing();
-    ImGui::Separator();
-    ImGui::Spacing();
-
-    ImGui::Text("Acciones:");
+    float availW = ImGui::GetContentRegionAvail().x;
+    float btnW = (availW - 8.0f) * 0.5f;
 
     // Botón para abrir la ventana emergente modal de Carga
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.38f, 0.62f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.24f, 0.48f, 0.78f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.14f, 0.30f, 0.50f, 1.0f));
-    if (ImGui::Button("Cargar Escena...", ImVec2(-1, 38))) {
+    if (ImGui::Button("Cargar Escena...", ImVec2(btnW, 36))) {
         refreshAvailableSceneFiles();
         m_showLoadModal = true;
     }
     ImGui::PopStyleColor(3);
 
-    ImGui::Spacing();
+    ImGui::SameLine();
 
     // Botón para abrir la ventana emergente modal de Guardado
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.48f, 0.32f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.24f, 0.60f, 0.40f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.14f, 0.38f, 0.25f, 1.0f));
-    if (ImGui::Button("Guardar Escena...", ImVec2(-1, 38))) {
+    if (ImGui::Button("Guardar Escena...", ImVec2(btnW, 36))) {
         refreshAvailableSceneFiles();
         m_showSaveModal = true;
     }
@@ -348,33 +382,10 @@ void EditorUI::renderPersistencePanel(Scene& scene) {
     // Mensaje de estado de la última operación
     if (!m_persistenceStatus.empty()) {
         ImGui::Spacing();
-        ImGui::Separator();
-        ImGui::Spacing();
         if (m_persistenceStatusIsError) {
             ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.35f, 1.0f), "%s", m_persistenceStatus.c_str());
         } else {
             ImGui::TextColored(ImVec4(0.35f, 1.0f, 0.45f, 1.0f), "%s", m_persistenceStatus.c_str());
-        }
-    }
-
-    ImGui::Spacing();
-    ImGui::Separator();
-    ImGui::Spacing();
-
-    // Sección colapsable para ruta manual externa
-    if (ImGui::CollapsingHeader("Ruta Manual Directa")) {
-        ImGui::InputText("Ruta", m_sceneFilePathBuffer, sizeof(m_sceneFilePathBuffer));
-        if (ImGui::Button("Cargar desde Ruta Manual", ImVec2(-1, 0))) {
-            SceneSerializer serializer(scene);
-            if (serializer.deserialize(m_sceneFilePathBuffer)) {
-                m_persistenceStatus = "Escena cargada desde:\n" + std::string(m_sceneFilePathBuffer);
-                m_persistenceStatusIsError = false;
-                m_selectedObjectId = 0;
-                m_selectedSubMeshIndex = -1;
-            } else {
-                m_persistenceStatus = "Error:\n" + serializer.getLastError();
-                m_persistenceStatusIsError = true;
-            }
         }
     }
 }
@@ -623,6 +634,15 @@ void EditorUI::renderSceneHierarchyPanel(Scene& scene) {
 
     const auto& objects = scene.getObjects();
     ImGui::Text("Jerarquia de Entidades (%zu):", objects.size());
+    if (m_selectedObjectId != 0) {
+        ImGui::SameLine(ImGui::GetWindowWidth() - 115.0f);
+        if (ImGui::SmallButton("Deseleccionar")) {
+            m_selectedObjectId = 0;
+            scene.selectedObjectID = 0;
+            m_selectedSubMeshIndex = -1;
+            m_selectedTriangleIndex = -1;
+        }
+    }
 
     ImGui::BeginChild("ListaEntidades", ImVec2(0, 150), true);
     for (const auto& obj : objects) {
@@ -723,37 +743,6 @@ void EditorUI::renderModelImporterPanel(Scene& scene) {
                 ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.35f, 1.0f), "%s", m_modelImportStatus.c_str());
             } else {
                 ImGui::TextColored(ImVec4(0.35f, 1.0f, 0.45f, 1.0f), "%s", m_modelImportStatus.c_str());
-            }
-        }
-
-        ImGui::Spacing();
-        ImGui::Separator();
-        ImGui::Spacing();
-
-        // Sección colapsable para ruta manual externa
-        if (ImGui::CollapsingHeader("Ruta Manual de Modelo")) {
-            ImGui::InputText("Ruta##ModelDirect", m_modelFilePathBuffer, sizeof(m_modelFilePathBuffer));
-            if (ImGui::Button("Cargar desde Ruta Manual##Model", ImVec2(-1, 0))) {
-                std::string pathStr(m_modelFilePathBuffer);
-                auto newModel = std::make_shared<Model>(pathStr);
-                if (newModel && newModel->isLoaded()) {
-                    std::filesystem::path p(pathStr);
-                    std::string entityName = p.stem().string();
-                    if (entityName.empty()) entityName = "Modelo 3D";
-
-                    auto newObj = scene.addObject(entityName, newModel);
-                    m_selectedObjectId = newObj->id;
-                    scene.selectedObjectID = newObj->id;
-                    m_selectedSubMeshIndex = -1;
-                    m_selectedTriangleIndex = -1;
-
-                    m_modelImportStatus = "Modelo cargado exitosamente:\n" + pathStr +
-                                          " (" + std::to_string(newModel->getSubMeshes().size()) + " sub-mallados)";
-                    m_modelImportStatusIsError = false;
-                } else {
-                    m_modelImportStatus = "Error al cargar archivo OBJ:\n" + pathStr;
-                    m_modelImportStatusIsError = true;
-                }
             }
         }
 
@@ -917,6 +906,12 @@ void EditorUI::renderPropertiesPanel(Scene& scene) {
     // Sliders de Transformación
     ImGui::Spacing();
     ImGui::Text("Transformacion:");
+    ImGui::SameLine(ImGui::GetWindowWidth() - 75.0f);
+    if (ImGui::SmallButton("Reset")) {
+        obj->transform.position = glm::vec3(0.0f);
+        obj->transform.rotation = glm::vec3(0.0f);
+        obj->transform.scale = glm::vec3(1.0f);
+    }
     ImGui::DragFloat3("Posicion", glm::value_ptr(obj->transform.position), 0.05f);
     ImGui::DragFloat3("Rotacion", glm::value_ptr(obj->transform.rotation), 1.0f, -360.0f, 360.0f);
     ImGui::DragFloat3("Escala", glm::value_ptr(obj->transform.scale), 0.05f, 0.01f, 50.0f);
@@ -982,6 +977,20 @@ void EditorUI::renderPropertiesPanel(Scene& scene) {
     // Modos de Visualización
     ImGui::Spacing();
     ImGui::Text("Modos de Visualizacion:");
+    ImGui::SameLine(ImGui::GetWindowWidth() - 135.0f);
+    if (ImGui::SmallButton("Todos")) {
+        obj->showWireframe = true;
+        obj->showVertices = true;
+        obj->showNormals = true;
+        obj->showBoundingBox = true;
+    }
+    ImGui::SameLine();
+    if (ImGui::SmallButton("Ninguno")) {
+        obj->showWireframe = false;
+        obj->showVertices = false;
+        obj->showNormals = false;
+        obj->showBoundingBox = false;
+    }
     ImGui::Checkbox("Visible", &obj->visible);
     ImGui::Checkbox("Alambre (Wireframe)", &obj->showWireframe);
 

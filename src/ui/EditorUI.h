@@ -67,6 +67,7 @@ private:
     int m_selectedTriangleIndex{-1};
 
     // Paneles modulares de interfaz
+    void renderTopBar();
     void renderPerformancePanel();
     void renderRenderSettingsPanel();
     void renderEnvironmentPanel(Scene& scene);
