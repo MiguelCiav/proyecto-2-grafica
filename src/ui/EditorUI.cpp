@@ -252,6 +252,7 @@ void EditorUI::renderSceneHierarchyPanel(Scene& scene) {
         if (ImGui::Selectable(label.c_str(), isSelected)) {
             m_selectedObjectId = obj->id;
             m_selectedSubMeshIndex = -1;
+            m_selectedTriangleIndex = -1;
         }
     }
     ImGui::EndChild();
@@ -356,6 +357,43 @@ void EditorUI::renderPropertiesPanel(Scene& scene) {
         }
     }
 
+    // Si estamos en Modo Triángulo, mostramos información detallada del triángulo seleccionado
+    if (m_selectionMode == SelectionMode::Triangle) {
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.1f, 1.0f), "Seleccion por Triangulo (Marcado Activo):");
+        if (obj->model && m_selectedTriangleIndex >= 0) {
+            int sIdx = (m_selectedSubMeshIndex >= 0 && m_selectedSubMeshIndex < static_cast<int>(obj->model->getSubMeshes().size()))
+                       ? m_selectedSubMeshIndex : 0;
+            const auto& sm = obj->model->getSubMeshes()[sIdx];
+            ImGui::BulletText("Triangulo Local: #%d / %zu", m_selectedTriangleIndex, sm.mesh.getTriangleCount());
+            ImGui::BulletText("Sub-mallado: %s", sm.name.c_str());
+
+            // Inspección de vértices que componen el triángulo
+            if (m_selectedTriangleIndex < static_cast<int>(sm.mesh.getTriangleCount())) {
+                glm::vec3 v0(0.0f), v1(0.0f), v2(0.0f);
+                if (sm.mesh.isIndexed()) {
+                    unsigned int i0 = sm.mesh.indices[m_selectedTriangleIndex * 3 + 0];
+                    unsigned int i1 = sm.mesh.indices[m_selectedTriangleIndex * 3 + 1];
+                    unsigned int i2 = sm.mesh.indices[m_selectedTriangleIndex * 3 + 2];
+                    v0 = sm.mesh.vertices[i0].Position;
+                    v1 = sm.mesh.vertices[i1].Position;
+                    v2 = sm.mesh.vertices[i2].Position;
+                    ImGui::Text("Indices: [%u, %u, %u]", i0, i1, i2);
+                } else if (!sm.mesh.vertices.empty()) {
+                    v0 = sm.mesh.vertices[m_selectedTriangleIndex * 3 + 0].Position;
+                    v1 = sm.mesh.vertices[m_selectedTriangleIndex * 3 + 1].Position;
+                    v2 = sm.mesh.vertices[m_selectedTriangleIndex * 3 + 2].Position;
+                }
+                ImGui::Text("V0: (%.2f, %.2f, %.2f)", v0.x, v0.y, v0.z);
+                ImGui::Text("V1: (%.2f, %.2f, %.2f)", v1.x, v1.y, v1.z);
+                ImGui::Text("V2: (%.2f, %.2f, %.2f)", v2.x, v2.y, v2.z);
+            }
+        } else {
+            ImGui::TextDisabled("Haz clic en una cara o triangulo en la escena.");
+        }
+    }
+
     // Modos de Visualización
     ImGui::Spacing();
     ImGui::Text("Modos de Visualizacion:");
@@ -374,6 +412,7 @@ void EditorUI::renderPropertiesPanel(Scene& scene) {
         scene.removeObject(m_selectedObjectId);
         m_selectedObjectId = 0;
         m_selectedSubMeshIndex = -1;
+        m_selectedTriangleIndex = -1;
     }
     ImGui::PopStyleColor(3);
 }

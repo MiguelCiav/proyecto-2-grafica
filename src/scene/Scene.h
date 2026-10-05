@@ -63,6 +63,15 @@ enum class SelectionMode {
 };
 
 /**
+ * @brief Estructura de mapeo inverso para decodificación de clics en modo Triángulo.
+ */
+struct TriangleHit {
+    unsigned int objectId{0};
+    unsigned int subMeshIndex{0};
+    unsigned int localTriangleIndex{0};
+};
+
+/**
  * @brief Gestor principal de la escena 3D.
  */
 class Scene {
@@ -92,9 +101,15 @@ public:
     // Renderizado para selección por color (Color Picking en FBO)
     void renderForPicking(Shader& shader, const glm::mat4& view, const glm::mat4& projection, SelectionMode mode);
 
+    // Consulta de correspondencia de triángulo por su ID global de picking
+    bool getTriangleHit(unsigned int globalTriangleId, TriangleHit& outHit) const;
+
 private:
     std::vector<std::shared_ptr<SceneObject>> m_objects;
     unsigned int m_nextId{1}; // Asignación correlativa de IDs unívocos
     DirectionalLight m_light;
     glm::vec4 m_backgroundColor{0.12f, 0.12f, 0.14f, 1.0f};
+
+    // Tabla de correspondencia para selección en Modo Triángulo
+    std::vector<TriangleHit> m_triangleLookup;
 };

@@ -49,6 +49,9 @@ public:
     // Renderizado según el modo de dibujo seleccionado
     void draw(DrawMode mode = DrawMode::Fill) const;
 
+    // Renderizado de un triángulo individual específico (REQ-A7)
+    void drawTriangle(unsigned int triangleIndex, DrawMode mode = DrawMode::Fill) const;
+
     // Getters de consulta
     unsigned int getVAO() const { return m_VAO; }
     unsigned int getVBO() const { return m_VBO; }
@@ -56,6 +59,7 @@ public:
     bool isIndexed() const { return !indices.empty(); }
     size_t getIndexCount() const { return indices.size(); }
     size_t getVertexCount() const { return vertices.size(); }
+    size_t getTriangleCount() const { return isIndexed() ? (indices.size() / 3) : (vertices.size() / 3); }
 
 private:
     unsigned int m_VAO{0};

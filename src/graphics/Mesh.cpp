@@ -121,6 +121,39 @@ void Mesh::draw(DrawMode mode) const {
     }
 }
 
+void Mesh::drawTriangle(unsigned int triangleIndex, DrawMode mode) const {
+    if (m_VAO == 0) return;
+    size_t totalTriangles = getTriangleCount();
+    if (triangleIndex >= totalTriangles) return;
+
+    switch (mode) {
+        case DrawMode::Fill:
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            break;
+        case DrawMode::Wireframe:
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            break;
+        case DrawMode::Points:
+            glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+            break;
+    }
+
+    glBindVertexArray(m_VAO);
+
+    if (isIndexed()) {
+        const void* offset = reinterpret_cast<const void*>(static_cast<uintptr_t>(triangleIndex * 3 * sizeof(unsigned int)));
+        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, offset);
+    } else {
+        glDrawArrays(GL_TRIANGLES, static_cast<GLint>(triangleIndex * 3), 3);
+    }
+
+    glBindVertexArray(0);
+
+    if (mode != DrawMode::Fill) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+}
+
 void Mesh::cleanup() {
     if (m_EBO != 0) {
         glDeleteBuffers(1, &m_EBO);
