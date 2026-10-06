@@ -34,15 +34,10 @@ Camera::Camera(float posX, float posY, float posZ,
 }
 
 glm::mat4 Camera::getViewMatrix() const {
-    // glm::lookAt(eye, center, up)
-    // eye: posición de la cámara en el mundo
-    // center: punto hacia el que apunta (posición + vector de vista)
-    // up: vector perpendicular que define la orientación superior
     return glm::lookAt(position, position + front, up);
 }
 
 glm::mat4 Camera::getProjectionMatrix(float aspectRatio) const {
-    // Proyección en perspectiva usando FOV vertical en radianes
     return glm::perspective(glm::radians(fov), aspectRatio, nearPlane, farPlane);
 }
 
@@ -78,7 +73,7 @@ void Camera::processMouseMovement(float xOffset, float yOffset, bool constrainPi
     yaw += xOffset;
     pitch += yOffset;
 
-    // Acotar el cabeceo (pitch) para evitar el bloqueo del cardán (Gimbal Lock) o volteo de cámara
+    
     if (constrainPitch) {
         pitch = std::clamp(pitch, -89.0f, 89.0f);
     }
@@ -88,7 +83,7 @@ void Camera::processMouseMovement(float xOffset, float yOffset, bool constrainPi
 
 void Camera::processMouseScroll(float yOffset) {
     fov -= yOffset;
-    // Acotar el zoom / campo de visión entre 1.0° y 45.0°
+    
     fov = std::clamp(fov, 1.0f, 45.0f);
 }
 
@@ -102,7 +97,7 @@ void Camera::reset() {
 }
 
 void Camera::updateCameraVectors() {
-    // 1. Calcular el nuevo vector de dirección Front a partir de trigonometría esférica
+    
     glm::vec3 newFront;
     const float yawRad = glm::radians(yaw);
     const float pitchRad = glm::radians(pitch);
@@ -112,7 +107,7 @@ void Camera::updateCameraVectors() {
     newFront.z = std::sin(yawRad) * std::cos(pitchRad);
     front = glm::normalize(newFront);
 
-    // 2. Recalcular los vectores Right y Up usando productos cruz normalizados
+    
     right = glm::normalize(glm::cross(front, worldUp));
     up = glm::normalize(glm::cross(right, front));
 }

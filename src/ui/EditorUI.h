@@ -2,8 +2,6 @@
 
 #include "scene/Scene.h"
 
-// Forward declaration de GLFWwindow para evitar incluir GLFW en cabeceras
-// y prevenir conflictos con el orden estricto de inclusión de GLAD
 struct GLFWwindow;
 
 /**
@@ -11,28 +9,25 @@ struct GLFWwindow;
  * Proporciona paneles para inspección de escena, transformaciones,
  * estados de renderizado (Depth Test, Culling) y entorno de iluminación.
  */
-class EditorUI {
+class EditorUI
+{
 public:
     EditorUI() = default;
     ~EditorUI();
 
-    // Inicialización y limpieza del contexto de ImGui
-    void init(GLFWwindow* window);
+    void init(GLFWwindow *window);
     void shutdown();
 
-    // Ciclo por fotograma
     void beginFrame();
     void render();
-    void render(Scene& scene);
+    void render(Scene &scene);
     void endFrame();
 
-    // Estados de rasterizado de OpenGL
     bool isDepthTestEnabled() const { return m_depthTest; }
     void setDepthTest(bool enable);
     bool isCullFaceEnabled() const { return m_cullFace; }
     void setCullFace(bool enable);
 
-    // Selección de entidades y modos (Global, Local, Triángulo)
     SelectionMode getSelectionMode() const { return m_selectionMode; }
     void setSelectionMode(SelectionMode mode) { m_selectionMode = mode; }
 
@@ -45,42 +40,35 @@ public:
     int getSelectedTriangleIndex() const { return m_selectedTriangleIndex; }
     void setSelectedTriangleIndex(int index) { m_selectedTriangleIndex = index; }
 
-    // Parámetros de inspección geométrica (REQ-A8)
     float getPointSize() const { return m_pointSize; }
     void setPointSize(float size) { m_pointSize = size; }
 
 private:
-
     bool m_initialized{false};
 
-    // Estados configurables de renderizado
     bool m_depthTest{true};
     bool m_cullFace{false};
 
-    // Parámetros de inspección geométrica
     float m_pointSize{6.0f};
 
-    // Entidad, sub-mallado y triángulo actualmente seleccionados en el inspector
     SelectionMode m_selectionMode{SelectionMode::Global};
     unsigned int m_selectedObjectId{0};
     int m_selectedSubMeshIndex{-1};
     int m_selectedTriangleIndex{-1};
 
-    // Paneles modulares de interfaz
     void renderTopBar();
     void renderPerformancePanel();
     void renderRenderSettingsPanel();
-    void renderEnvironmentPanel(Scene& scene);
-    void renderPersistencePanel(Scene& scene);
-    void renderLoadSceneModal(Scene& scene);
-    void renderSaveSceneModal(Scene& scene);
-    void renderLoadModelModal(Scene& scene);
-    void renderSceneHierarchyPanel(Scene& scene);
-    void renderPrimitivesCreatorPanel(Scene& scene);
-    void renderModelImporterPanel(Scene& scene);
-    void renderPropertiesPanel(Scene& scene);
+    void renderEnvironmentPanel(Scene &scene);
+    void renderPersistencePanel(Scene &scene);
+    void renderLoadSceneModal(Scene &scene);
+    void renderSaveSceneModal(Scene &scene);
+    void renderLoadModelModal(Scene &scene);
+    void renderSceneHierarchyPanel(Scene &scene);
+    void renderPrimitivesCreatorPanel(Scene &scene);
+    void renderModelImporterPanel(Scene &scene);
+    void renderPropertiesPanel(Scene &scene);
 
-    // Persistencia de escena (.scene)
     char m_sceneFilePathBuffer[256]{"assets/scenes/default.scene"};
     char m_newSceneFileNameBuffer[128]{"mi_escena"};
     std::string m_persistenceStatus;
@@ -93,7 +81,6 @@ private:
 
     void refreshAvailableSceneFiles();
 
-    // Importación de modelos 3D (.obj / .mtl)
     char m_modelFilePathBuffer[256]{"assets/models/robot.obj"};
     std::string m_modelImportStatus;
     bool m_modelImportStatusIsError{false};

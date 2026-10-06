@@ -13,9 +13,8 @@
  *  - Esfera parametrizable en radio, sectores y anillos (stacks).
  *  - Cilindro parametrizable en radio, altura y sectores de revolución (Requisito Parejas).
  */
-namespace Primitives {
-
-    // --- Generación de Mesh puro ---
+namespace Primitives
+{
 
     /**
      * @brief Genera una malla de cubo centrada en el origen con normales analíticas por cara.
@@ -45,9 +44,6 @@ namespace Primitives {
      * @param sectors Número de segmentos de revolución (mínimo 3, por defecto 32).
      */
     Mesh createCylinderMesh(float radius = 1.0f, float height = 1.0f, unsigned int sectors = 32);
-
-
-    // --- Generación de Model (listo para SceneObject / Scene) ---
 
     std::shared_ptr<Model> createCube(float size = 1.0f);
     std::shared_ptr<Model> createPyramid(float base = 1.0f, float height = 1.0f);

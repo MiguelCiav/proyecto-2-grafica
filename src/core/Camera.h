@@ -19,11 +19,11 @@ enum class CameraMovement {
  * @brief Valores por defecto de configuración de la cámara.
  */
 namespace CameraDefaults {
-    constexpr float YAW         = -90.0f; // Mirando hacia el eje -Z
-    constexpr float PITCH       =   0.0f; // Nivel del horizonte
-    constexpr float SPEED       =   2.5f; // Unidades por segundo
-    constexpr float SENSITIVITY =   0.1f; // Grados por pixel de desplazamiento
-    constexpr float FOV         =  45.0f; // Grados de campo de visión vertical
+    constexpr float YAW         = -90.0f;
+    constexpr float PITCH       =   0.0f;
+    constexpr float SPEED       =   2.5f;
+    constexpr float SENSITIVITY =   0.1f;
+    constexpr float FOV         =  45.0f; 
     constexpr float NEAR_PLANE  =   0.1f;
     constexpr float FAR_PLANE   = 100.0f;
 }
@@ -37,18 +37,18 @@ namespace CameraDefaults {
  */
 class Camera {
 public:
-    // Atributos de posición y orientación en el espacio del mundo
+    
     glm::vec3 position;
     glm::vec3 front;
     glm::vec3 up;
     glm::vec3 right;
     glm::vec3 worldUp;
 
-    // Ángulos de Euler (en grados)
+    
     float yaw;
     float pitch;
 
-    // Opciones de configuración de navegación
+    
     float movementSpeed;
     float mouseSensitivity;
     float fov;
